@@ -3,22 +3,20 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 02: Editor Chrome
+- Feature 03: Auth ✓
 
 ## Current Goal
-- Implement the editor navbar and project sidebar shell components that frame every editor screen.
+- None. Feature 03 complete. Awaiting next feature spec.
 
 ## Completed
 
 - Feature 01: Design System — shadcn/ui installed and configured for Tailwind v4, dark-only theme tokens in globals.css, Button/Card/Dialog/Input/Tabs/Textarea/ScrollArea components added to components/ui/, lucide-react installed, lib/utils.ts cn() helper in place. TypeScript compiles clean.
 - Feature 02: Editor Chrome — EditorNavbar (fixed top bar with sidebar toggle using PanelLeftOpen/PanelLeftClose icons) and ProjectSidebar (floating overlay, slides in from left, Tabs for My Projects/Shared, New Project button) created in components/editor/. Dialog pattern documented — uses existing shadcn Dialog with globals.css tokens. Components compile without TypeScript or lint errors.
+- Feature 03: Auth — ClerkProvider with dark theme wrapping root layout, proxy.ts at project root (protected-first, public: /sign-in, /sign-up), sign-in/sign-up two-panel pages using CSS variables only, home page redirects (auth→/editor, unauth→/sign-in), app/editor/page.tsx created, UserButton added to EditorNavbar right section. npm run build passes.
 
 ## In Progress
 
 - None.
-
-## Next Up
-- Feature 03: TBD
 
 ## Open Questions
 
