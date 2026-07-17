@@ -3,21 +3,22 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 02 : TBD
+- Feature 02: Editor Chrome
 
 ## Current Goal
-- Define the immediate implemenatation goal here .
+- Implement the editor navbar and project sidebar shell components that frame every editor screen.
 
 ## Completed
 
 - Feature 01: Design System — shadcn/ui installed and configured for Tailwind v4, dark-only theme tokens in globals.css, Button/Card/Dialog/Input/Tabs/Textarea/ScrollArea components added to components/ui/, lucide-react installed, lib/utils.ts cn() helper in place. TypeScript compiles clean.
+- Feature 02: Editor Chrome — EditorNavbar (fixed top bar with sidebar toggle using PanelLeftOpen/PanelLeftClose icons) and ProjectSidebar (floating overlay, slides in from left, Tabs for My Projects/Shared, New Project button) created in components/editor/. Dialog pattern documented — uses existing shadcn Dialog with globals.css tokens. Components compile without TypeScript or lint errors.
 
 ## In Progress
 
-- None yet .
+- None.
 
 ## Next Up
-- Feature 02 : TBD
+- Feature 03: TBD
 
 ## Open Questions
 
