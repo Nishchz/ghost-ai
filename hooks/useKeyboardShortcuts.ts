@@ -11,6 +11,8 @@ interface UseKeyboardShortcutsOptions {
   onUndo: () => void;
   /** Called when the user triggers redo. */
   onRedo: () => void;
+  /** Called when the user deletes selected elements. */
+  onDelete?: (params: { nodes: any[]; edges: any[] }) => void;
 }
 
 /**
@@ -26,11 +28,13 @@ interface UseKeyboardShortcutsOptions {
  *   Ctrl/Cmd + Z   → undo
  *   Ctrl/Cmd + Shift + Z → redo
  *   Ctrl/Cmd + Y   → redo
+ *   Backspace / Delete → delete selected nodes and edges
  */
 export function useKeyboardShortcuts({
   reactFlowInstance,
   onUndo,
   onRedo,
+  onDelete,
 }: UseKeyboardShortcutsOptions): void {
   useEffect(() => {
     function isTypingTarget(el: Element | null): boolean {
@@ -81,11 +85,23 @@ export function useKeyboardShortcuts({
         reactFlowInstance?.zoomOut({ duration: 200 });
         return;
       }
+
+      // Delete selected elements: Backspace or Delete
+      if (event.key === "Backspace" || event.key === "Delete") {
+        if (!reactFlowInstance) return;
+        const selectedNodes = reactFlowInstance.getNodes().filter((n) => n.selected);
+        const selectedEdges = reactFlowInstance.getEdges().filter((e) => e.selected);
+
+        if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+          event.preventDefault();
+          onDelete?.({ nodes: selectedNodes, edges: selectedEdges });
+        }
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [reactFlowInstance, onUndo, onRedo]);
+  }, [reactFlowInstance, onUndo, onRedo, onDelete]);
 }

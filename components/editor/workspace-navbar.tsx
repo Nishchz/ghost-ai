@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { PanelLeftClose, PanelLeftOpen, Share2, MessageSquare, LayoutTemplate } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
+import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate, Loader2, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShareDialog } from "@/components/editor/share-dialog";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
 import type { CanvasTemplate } from "@/components/editor/starter-templates";
+import type { SaveStatus } from "@/hooks/useCanvasAutosave";
 
 interface WorkspaceNavbarProps {
   projectId: string;
@@ -17,6 +17,8 @@ interface WorkspaceNavbarProps {
   isAiSidebarOpen: boolean;
   onAiSidebarToggle: () => void;
   onImportTemplate?: (template: CanvasTemplate) => void;
+  saveStatus?: SaveStatus;
+  onManualSave?: () => void;
 }
 
 export function WorkspaceNavbar({
@@ -28,9 +30,32 @@ export function WorkspaceNavbar({
   isAiSidebarOpen,
   onAiSidebarToggle,
   onImportTemplate,
+  saveStatus = "idle",
+  onManualSave,
 }: WorkspaceNavbarProps) {
   const [shareOpen, setShareOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [buttonLabel, setButtonLabel] = useState("Save");
+
+  useEffect(() => {
+    if (saveStatus === "saving") {
+      setButtonLabel("Saving...");
+    } else if (saveStatus === "saved") {
+      setButtonLabel("Saved");
+      const timer = setTimeout(() => {
+        setButtonLabel("Save");
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else if (saveStatus === "error") {
+      setButtonLabel("Error");
+      const timer = setTimeout(() => {
+        setButtonLabel("Save");
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setButtonLabel("Save");
+    }
+  }, [saveStatus]);
 
   function handleImport(template: CanvasTemplate) {
     if (onImportTemplate) {
@@ -65,18 +90,62 @@ export function WorkspaceNavbar({
           </Button>
         </div>
 
-        {/* Center — project name */}
-        <div className="flex flex-1 items-center justify-center">
+        {/* Center — project name + save status */}
+        <div className="flex flex-1 items-center justify-center gap-2">
           <span
             className="text-sm font-semibold tracking-tight truncate max-w-[280px]"
             style={{ color: "var(--text-primary)" }}
           >
             {projectName}
           </span>
+          {/* Save status indicator */}
+          {saveStatus === "saving" && (
+            <Loader2
+              className="h-3.5 w-3.5 animate-spin flex-shrink-0"
+              style={{ color: "var(--text-muted)" }}
+              aria-label="Saving…"
+            />
+          )}
+          {saveStatus === "saved" && (
+            <Check
+              className="h-3.5 w-3.5 flex-shrink-0"
+              style={{ color: "var(--state-success, #4ade80)" }}
+              aria-label="Saved"
+            />
+          )}
+          {saveStatus === "error" && (
+            <span title="Autosave failed — check your connection">
+              <AlertCircle
+                className="h-3.5 w-3.5 flex-shrink-0"
+                style={{ color: "var(--state-error)" }}
+                aria-label="Save failed"
+              />
+            </span>
+          )}
         </div>
 
-        {/* Right — templates, share button, AI toggle, user */}
+        {/* Right — save button, templates, share button, AI toggle, user */}
         <div className="flex items-center gap-2">
+          {/* Save button */}
+          {projectId && onManualSave && (
+            <Button
+              variant="outline"
+              size="sm"
+              id="workspace-save-button"
+              aria-label="Save canvas"
+              onClick={onManualSave}
+              disabled={saveStatus === "saving"}
+              className="h-8 px-3 text-xs font-medium"
+              style={{
+                color: "var(--text-secondary)",
+                border: "1px solid var(--border-default)",
+                backgroundColor: "transparent",
+              }}
+            >
+              {buttonLabel}
+            </Button>
+          )}
+
           {/* Starter templates */}
           <Button
             variant="ghost"
@@ -114,23 +183,34 @@ export function WorkspaceNavbar({
           {/* AI sidebar toggle */}
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={onAiSidebarToggle}
             aria-label={isAiSidebarOpen ? "Close AI sidebar" : "Open AI sidebar"}
-            className="h-8 w-8"
+            className="h-8 gap-1.5 px-3 text-xs font-medium transition-all"
             style={{
               color: isAiSidebarOpen
                 ? "var(--accent-ai-text)"
                 : "var(--text-secondary)",
+              borderColor: isAiSidebarOpen
+                ? "rgba(100, 87, 249, 0.4)"
+                : "var(--border-default)",
+              borderWidth: "1px",
+              borderStyle: "solid",
               backgroundColor: isAiSidebarOpen
                 ? "rgba(100, 87, 249, 0.12)"
                 : "transparent",
             }}
           >
-            <MessageSquare className="h-4 w-4" />
+            <Sparkles
+              className="h-3.5 w-3.5 transition-colors"
+              style={{
+                color: isAiSidebarOpen
+                  ? "var(--accent-ai-text)"
+                  : "var(--text-muted)",
+              }}
+            />
+            AI
           </Button>
-
-          <UserButton />
         </div>
       </header>
 

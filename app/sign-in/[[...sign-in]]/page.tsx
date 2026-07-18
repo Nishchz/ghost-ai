@@ -18,7 +18,7 @@ export default function SignInPage() {
               className="text-xl font-semibold tracking-tight"
               style={{ color: "var(--text-primary)" }}
             >
-              ghost
+              Ghost
             </span>
             <span
               className="text-xl font-semibold tracking-tight"

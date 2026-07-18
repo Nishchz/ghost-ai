@@ -6,11 +6,15 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { CollaborativeCanvas } from "./canvas";
 import type { CanvasTemplate } from "./starter-templates";
+import type { SaveStatus } from "@/hooks/useCanvasAutosave";
 
 interface CanvasWrapperProps {
   roomId: string;
+  projectId: string;
   templateToImport?: CanvasTemplate | null;
   onImportConsumed?: () => void;
+  onSaveStatusChange?: (status: SaveStatus) => void;
+  onRegisterManualSave?: (saveFn: () => void) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -93,21 +97,27 @@ function CanvasError({ error }: FallbackProps) {
  */
 export function CanvasWrapper({
   roomId,
+  projectId,
   templateToImport,
   onImportConsumed,
+  onSaveStatusChange,
+  onRegisterManualSave,
 }: CanvasWrapperProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider
         id={roomId}
-        initialPresence={{ cursor: null, isThinking: false }}
+        initialPresence={{ cursor: null, isThinking: false, thinking: false }}
       >
         <ErrorBoundary FallbackComponent={CanvasError}>
           <ClientSideSuspense fallback={<CanvasLoading />}>
             <ReactFlowProvider>
               <CollaborativeCanvas
+                projectId={projectId}
                 templateToImport={templateToImport}
                 onImportConsumed={onImportConsumed}
+                onSaveStatusChange={onSaveStatusChange}
+                onRegisterManualSave={onRegisterManualSave}
               />
             </ReactFlowProvider>
           </ClientSideSuspense>

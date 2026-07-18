@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { useState, useCallback } from "react";
+import type { SaveStatus } from "@/hooks/useCanvasAutosave";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { WorkspaceNavbar } from "@/components/editor/workspace-navbar";
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog";
@@ -10,6 +10,7 @@ import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog";
 import { useProjectActions, type Project } from "@/hooks/use-project-actions";
 import { CanvasWrapper } from "@/components/editor/canvas-wrapper";
 import type { CanvasTemplate } from "@/components/editor/starter-templates";
+import { AiSidebar } from "@/components/editor/ai-sidebar";
 
 
 interface WorkspaceClientProps {
@@ -26,6 +27,18 @@ export function WorkspaceClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [templateToImport, setTemplateToImport] = useState<CanvasTemplate | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [manualSaveRef, setManualSaveRef] = useState<{ current: (() => void) | null }>({ current: null });
+
+  const handleSaveStatusChange = useCallback((status: SaveStatus) => {
+    setSaveStatus(status);
+  }, []);
+
+  const handleRegisterManualSave = useCallback((saveFn: () => void) => {
+    setManualSaveRef({ current: saveFn });
+  }, []);
+
+  const handleManualSave = manualSaveRef.current || undefined;
 
   const {
     dialog,
@@ -44,7 +57,7 @@ export function WorkspaceClient({
 
   return (
     <div
-      className="relative min-h-screen flex flex-col"
+      className="relative h-screen flex flex-col overflow-hidden"
       style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}
     >
       <WorkspaceNavbar
@@ -56,6 +69,8 @@ export function WorkspaceClient({
         isAiSidebarOpen={aiSidebarOpen}
         onAiSidebarToggle={() => setAiSidebarOpen((prev) => !prev)}
         onImportTemplate={setTemplateToImport}
+        saveStatus={saveStatus}
+        onManualSave={handleManualSave}
       />
 
       <ProjectSidebar
@@ -74,78 +89,20 @@ export function WorkspaceClient({
         <div className="flex-1 flex flex-col relative overflow-hidden">
           <CanvasWrapper
             roomId={activeProject.id}
+            projectId={activeProject.id}
             templateToImport={templateToImport}
             onImportConsumed={() => setTemplateToImport(null)}
+            onSaveStatusChange={handleSaveStatusChange}
+            onRegisterManualSave={handleRegisterManualSave}
           />
 
         </div>
 
-        {/* Right AI sidebar placeholder */}
-        <aside 
-          className="flex flex-col h-full backdrop-blur-md"
-          
-          style={{
-            width: aiSidebarOpen ? "320px" : "0px",
-            overflow: "hidden",
-            borderLeft: aiSidebarOpen
-              ? "1px solid var(--border-default)"
-              : "none",
-            backgroundColor: "rgba(17, 17, 20, 0.85)",
-            transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-            willChange: "width",
-          }}
-        >
-          <div className="flex flex-col h-full w-[320px] p-4 gap-4">
-            {/* Header */}
-            <div
-              className="flex items-center gap-2 pb-3"
-              style={{ borderBottom: "1px solid var(--border-default)" }}
-            >
-              <MessageSquare
-                className="h-4 w-4"
-                style={{ color: "var(--accent-ai-text)" }}
-              />
-              <span
-                className="text-sm font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                AI Architect
-              </span>
-            </div>
-
-            {/* Placeholder content */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-              <div
-                className="flex items-center justify-center w-12 h-12 rounded-2xl border"
-                style={{
-                  backgroundColor: "var(--bg-subtle)",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                <MessageSquare
-                  className="h-6 w-6"
-                  style={{ color: "var(--accent-ai-text)" }}
-                />
-              </div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                AI chat and system design generation will appear here.
-              </p>
-            </div>
-
-            {/* Input placeholder */}
-            <div
-              className="rounded-xl border p-3"
-              style={{
-                backgroundColor: "var(--bg-subtle)",
-                borderColor: "var(--border-default)",
-              }}
-            >
-              <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-                Chat input coming soon…
-              </p>
-            </div>
-          </div>
-        </aside>
+        {/* Right AI sidebar */}
+        <AiSidebar
+          isOpen={aiSidebarOpen}
+          onClose={() => setAiSidebarOpen(false)}
+        />
       </main>
 
       {/* Dialogs */}

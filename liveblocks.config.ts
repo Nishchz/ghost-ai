@@ -10,6 +10,8 @@ declare global {
       cursor: { x: number; y: number } | null;
       /** True while the AI agent is generating a design. */
       isThinking: boolean;
+      /** True while the user or agent is thinking/generating. */
+      thinking: boolean;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
