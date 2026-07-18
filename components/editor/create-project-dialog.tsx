@@ -94,10 +94,10 @@ export function CreateProjectDialog({
             />
           </div>
 
-          {/* Slug preview */}
+          {/* Room ID preview */}
           <div className="flex items-center gap-2">
             <span className="text-xs" style={{ color: "var(--text-faint)" }}>
-              Slug:
+              Room ID:
             </span>
             <code
               className="rounded-xl px-2 py-0.5 text-xs font-mono"
@@ -106,7 +106,7 @@ export function CreateProjectDialog({
                 color: slugPreview ? "var(--accent-primary)" : "var(--text-faint)",
               }}
             >
-              {slugPreview || "project-slug"}
+              {slugPreview || "room-id"}
             </code>
           </div>
         </div>

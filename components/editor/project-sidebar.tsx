@@ -5,12 +5,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MockProject } from "@/hooks/use-project-dialogs";
+import type { MockProject } from "@/hooks/use-project-actions";
+import { useRouter } from "next/navigation";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   projects: MockProject[];
+  activeProjectId?: string;
   onNewProject: () => void;
   onRename: (project: MockProject) => void;
   onDelete: (project: MockProject) => void;
@@ -32,18 +34,23 @@ function EmptyPlaceholder({ label }: { label: string }) {
 
 interface ProjectItemProps {
   project: MockProject;
+  activeProjectId?: string;
   onRename: (project: MockProject) => void;
   onDelete: (project: MockProject) => void;
 }
 
-function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
+function ProjectItem({ project, activeProjectId, onRename, onDelete }: ProjectItemProps) {
+  const isActive = project.id === activeProjectId;
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <div
+      onClick={() => router.push(`/editor/${project.id}`)}
       className="group relative flex items-center gap-3 px-4 py-2.5 rounded-xl mx-2 cursor-pointer transition-colors"
       style={{
-        color: "var(--text-secondary)",
+        color: isActive ? "var(--accent-primary)" : "var(--text-secondary)",
+        backgroundColor: isActive ? "var(--accent-primary-dim)" : undefined,
       }}
       onMouseLeave={() => setMenuOpen(false)}
     >
@@ -53,11 +60,14 @@ function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
         style={{ backgroundColor: "var(--bg-subtle)" }}
       />
 
-      <FolderOpen className="relative h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
+      <FolderOpen
+        className="relative h-4 w-4 shrink-0"
+        style={{ color: isActive ? "var(--accent-primary)" : "var(--text-muted)" }}
+      />
 
       <span
-        className="relative flex-1 truncate text-sm"
-        style={{ color: "var(--text-secondary)" }}
+        className="relative flex-1 truncate text-sm font-medium"
+        style={{ color: isActive ? "var(--accent-primary)" : "var(--text-secondary)" }}
       >
         {project.name}
       </span>
@@ -82,7 +92,10 @@ function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
               {/* Dismiss overlay */}
               <div
                 className="fixed inset-0 z-40"
-                onClick={() => setMenuOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                }}
               />
               <div
                 className="absolute right-0 top-7 z-50 flex flex-col rounded-xl overflow-hidden min-w-[130px] shadow-xl"
@@ -92,7 +105,8 @@ function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
                 }}
               >
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setMenuOpen(false);
                     onRename(project);
                   }}
@@ -103,7 +117,8 @@ function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
                   Rename
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setMenuOpen(false);
                     onDelete(project);
                   }}
@@ -126,6 +141,7 @@ export function ProjectSidebar({
   isOpen,
   onClose,
   projects,
+  activeProjectId,
   onNewProject,
   onRename,
   onDelete,
@@ -204,6 +220,7 @@ export function ProjectSidebar({
                     <ProjectItem
                       key={project.id}
                       project={project}
+                      activeProjectId={activeProjectId}
                       onRename={onRename}
                       onDelete={onDelete}
                     />
@@ -223,6 +240,7 @@ export function ProjectSidebar({
                     <ProjectItem
                       key={project.id}
                       project={project}
+                      activeProjectId={activeProjectId}
                       onRename={onRename}
                       onDelete={onDelete}
                     />
