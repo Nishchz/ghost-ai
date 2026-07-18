@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Cpu, Share2, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { WorkspaceNavbar } from "@/components/editor/workspace-navbar";
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog";
 import { RenameProjectDialog } from "@/components/editor/rename-project-dialog";
 import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog";
 import { useProjectActions, type Project } from "@/hooks/use-project-actions";
+import { CanvasWrapper } from "@/components/editor/canvas-wrapper";
+
 
 interface WorkspaceClientProps {
   initialProjects: Project[];
@@ -68,93 +69,8 @@ export function WorkspaceClient({
       <main className="flex-1 flex flex-row pt-12 relative overflow-hidden">
         {/* Canvas area */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          {/* Dot grid background */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "radial-gradient(rgba(255, 255, 255, 0.04) 1.5px, transparent 1.5px)",
-              backgroundSize: "24px 24px",
-            }}
-          />
+          <CanvasWrapper roomId={activeProject.id} />
 
-          {/* Ambient glow */}
-          <div
-            className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[160px] opacity-10 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle, var(--accent-primary) 0%, transparent 70%)",
-            }}
-          />
-
-          {/* Canvas placeholder */}
-          <div className="flex-1 flex flex-col items-center justify-center p-8 z-10">
-            <div
-              className="flex flex-col items-center gap-6 p-8 max-w-lg w-full text-center rounded-3xl border backdrop-blur-md"
-              style={{
-                backgroundColor: "rgba(24, 24, 28, 0.65)",
-                borderColor: "var(--border-default)",
-              }}
-            >
-              {/* Icon */}
-              <div
-                className="flex items-center justify-center w-16 h-16 rounded-2xl border"
-                style={{
-                  backgroundColor: "var(--bg-subtle)",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                <Cpu
-                  className="h-8 w-8 animate-pulse"
-                  style={{ color: "var(--accent-primary)" }}
-                />
-              </div>
-
-              {/* Project name */}
-              <div className="flex flex-col gap-2">
-                <h2
-                  className="text-xl font-bold tracking-tight"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  {activeProject.name}
-                </h2>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span
-                    className="px-2 py-0.5 rounded-lg text-xs font-mono border"
-                    style={{
-                      backgroundColor: "var(--bg-subtle)",
-                      borderColor: "var(--border-subtle)",
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    Room: {activeProject.id}
-                  </span>
-                  <span
-                    className="px-2 py-0.5 rounded-lg text-xs font-semibold border"
-                    style={{
-                      backgroundColor: "var(--accent-primary-dim)",
-                      borderColor: "rgba(0, 200, 212, 0.2)",
-                      color: "var(--accent-primary)",
-                    }}
-                  >
-                    {activeProject.status}
-                  </span>
-                </div>
-              </div>
-
-              {/* Separator */}
-              <div
-                className="w-full h-px"
-                style={{ backgroundColor: "var(--border-default)" }}
-              />
-
-              {/* Coming soon message */}
-              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                The collaborative canvas will load here. Real-time editing,
-                nodes, edges, and AI generation are coming in the next phase.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Right AI sidebar placeholder */}
