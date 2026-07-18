@@ -1,13 +1,19 @@
 "use client";
 
-import { X, Plus, FolderOpen } from "lucide-react";
+import { X, Plus, FolderOpen, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { MockProject } from "@/hooks/use-project-dialogs";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  projects: MockProject[];
+  onNewProject: () => void;
+  onRename: (project: MockProject) => void;
+  onDelete: (project: MockProject) => void;
 }
 
 function EmptyPlaceholder({ label }: { label: string }) {
@@ -24,9 +30,121 @@ function EmptyPlaceholder({ label }: { label: string }) {
   );
 }
 
-export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
+interface ProjectItemProps {
+  project: MockProject;
+  onRename: (project: MockProject) => void;
+  onDelete: (project: MockProject) => void;
+}
+
+function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div
+      className="group relative flex items-center gap-3 px-4 py-2.5 rounded-xl mx-2 cursor-pointer transition-colors"
+      style={{
+        color: "var(--text-secondary)",
+      }}
+      onMouseLeave={() => setMenuOpen(false)}
+    >
+      {/* Hover background */}
+      <div
+        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ backgroundColor: "var(--bg-subtle)" }}
+      />
+
+      <FolderOpen className="relative h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
+
+      <span
+        className="relative flex-1 truncate text-sm"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        {project.name}
+      </span>
+
+      {/* Actions — only for owned projects */}
+      {project.owned && (
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((prev) => !prev);
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg-elevated)]"
+            aria-label="Project actions"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </button>
+
+          {menuOpen && (
+            <>
+              {/* Dismiss overlay */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setMenuOpen(false)}
+              />
+              <div
+                className="absolute right-0 top-7 z-50 flex flex-col rounded-xl overflow-hidden min-w-[130px] shadow-xl"
+                style={{
+                  backgroundColor: "var(--bg-elevated)",
+                  border: "1px solid var(--border-default)",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onRename(project);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-subtle)]"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Rename
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete(project);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-[var(--bg-subtle)]"
+                  style={{ color: "var(--state-error)" }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ProjectSidebar({
+  isOpen,
+  onClose,
+  projects,
+  onNewProject,
+  onRename,
+  onDelete,
+}: ProjectSidebarProps) {
+  const myProjects = projects.filter((p) => p.owned);
+  const sharedProjects = projects.filter((p) => !p.owned);
+
   return (
     <>
+      {/* Mobile backdrop scrim */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 md:hidden"
+          style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Floating overlay — does not push page content */}
       <aside
         className="fixed left-0 top-12 z-40 flex h-[calc(100vh-3rem)] w-72 flex-col backdrop-blur-md"
@@ -76,15 +194,41 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="my-projects" className="flex-1 overflow-hidden m-0">
+          <TabsContent value="my-projects" className="flex-1 overflow-hidden m-0 mt-2">
             <ScrollArea className="h-full">
-              <EmptyPlaceholder label="My Projects" />
+              {myProjects.length === 0 ? (
+                <EmptyPlaceholder label="My Projects" />
+              ) : (
+                <div className="py-2">
+                  {myProjects.map((project) => (
+                    <ProjectItem
+                      key={project.id}
+                      project={project}
+                      onRename={onRename}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="shared" className="flex-1 overflow-hidden m-0">
+          <TabsContent value="shared" className="flex-1 overflow-hidden m-0 mt-2">
             <ScrollArea className="h-full">
-              <EmptyPlaceholder label="Shared Projects" />
+              {sharedProjects.length === 0 ? (
+                <EmptyPlaceholder label="Shared Projects" />
+              ) : (
+                <div className="py-2">
+                  {sharedProjects.map((project) => (
+                    <ProjectItem
+                      key={project.id}
+                      project={project}
+                      onRename={onRename}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </TabsContent>
         </Tabs>
@@ -96,6 +240,7 @@ export function ProjectSidebar({ isOpen, onClose }: ProjectSidebarProps) {
         >
           <Button
             className="w-full gap-2"
+            onClick={onNewProject}
             style={{
               backgroundColor: "var(--accent-primary)",
               color: "var(--bg-base)",

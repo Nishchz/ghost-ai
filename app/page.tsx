@@ -1,31 +1,12 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-import { useState } from "react";
-import { EditorNavbar } from "@/components/editor/editor-navbar";
-import { ProjectSidebar } from "@/components/editor/project-sidebar";
+export default async function Home() {
+  const { isAuthenticated } = await auth();
 
-export default function Home() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  return (
-    <div className="relative min-h-screen" style={{ backgroundColor: "var(--bg-base)" }}>
-      <EditorNavbar
-        isSidebarOpen={sidebarOpen}
-        onSidebarToggle={() => setSidebarOpen((prev) => !prev)}
-      />
-      <ProjectSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
-      {/* Canvas placeholder */}
-      <main className="flex h-screen items-center justify-center pt-12">
-        <p style={{ color: "var(--text-faint)", fontSize: "0.875rem" }}>
-          ghost AI — canvas area
-        </p>
-      </main>
-    </div>
-  );
+  if (isAuthenticated) {
+    redirect("/editor");
+  } else {
+    redirect("/sign-in");
+  }
 }
-
-
-
-  
-

@@ -3,22 +3,23 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 02: Editor Chrome
+- Feature 05: Prisma (completed)
 
 ## Current Goal
-- Implement the editor navbar and project sidebar shell components that frame every editor screen.
+- Completed initial Prisma setup, models, client caching, database migration, and verification.
 
 ## Completed
 
 - Feature 01: Design System — shadcn/ui installed and configured for Tailwind v4, dark-only theme tokens in globals.css, Button/Card/Dialog/Input/Tabs/Textarea/ScrollArea components added to components/ui/, lucide-react installed, lib/utils.ts cn() helper in place. TypeScript compiles clean.
 - Feature 02: Editor Chrome — EditorNavbar (fixed top bar with sidebar toggle using PanelLeftOpen/PanelLeftClose icons) and ProjectSidebar (floating overlay, slides in from left, Tabs for My Projects/Shared, New Project button) created in components/editor/. Dialog pattern documented — uses existing shadcn Dialog with globals.css tokens. Components compile without TypeScript or lint errors.
+- Feature 03: Auth — ClerkProvider with dark theme wrapping root layout, proxy.ts at project root (protected-first, public: /sign-in, /sign-up), sign-in/sign-up two-panel pages using CSS variables only, home page redirects (auth→/editor, unauth→/sign-in), app/editor/page.tsx created, UserButton added to EditorNavbar right section. npm run build passes.
+- Feature 04: Project Dialogs — editor home CTA, Create/Rename/Delete dialogs, sidebar project item actions, useProjectDialogs hook, mobile backdrop scrim.
+- Feature 05: Prisma — Project and ProjectCollaborator models in prisma/models/project.prisma, cached Prisma client singleton in lib/prisma.ts branching on DATABASE_URL (for Accelerate vs. direct pg), database migration applied, and successful type-safe client generation in app/generated/prisma.
 
 ## In Progress
 
-- None.
+- None
 
-## Next Up
-- Feature 03: TBD
 
 ## Open Questions
 
@@ -35,3 +36,4 @@ Do not modify generated components/ui/* files after shadcn installation.
 - Using Next.js 16.2.4 with React 19 and Tailwind CSS v4.
 - shadcn version 4.5.0 was used; it auto-detected Tailwind v4.
 - lucide-react ^1.11.0 installed as a direct dependency.
+- Active work on Feature 05 (Prisma): Applying the first migration and generating the cached client.
