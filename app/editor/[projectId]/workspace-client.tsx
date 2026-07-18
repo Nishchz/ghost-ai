@@ -9,6 +9,7 @@ import { RenameProjectDialog } from "@/components/editor/rename-project-dialog";
 import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog";
 import { useProjectActions, type Project } from "@/hooks/use-project-actions";
 import { CanvasWrapper } from "@/components/editor/canvas-wrapper";
+import type { CanvasTemplate } from "@/components/editor/starter-templates";
 
 
 interface WorkspaceClientProps {
@@ -24,6 +25,7 @@ export function WorkspaceClient({
 }: WorkspaceClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
+  const [templateToImport, setTemplateToImport] = useState<CanvasTemplate | null>(null);
 
   const {
     dialog,
@@ -53,6 +55,7 @@ export function WorkspaceClient({
         onSidebarToggle={() => setSidebarOpen((prev) => !prev)}
         isAiSidebarOpen={aiSidebarOpen}
         onAiSidebarToggle={() => setAiSidebarOpen((prev) => !prev)}
+        onImportTemplate={setTemplateToImport}
       />
 
       <ProjectSidebar
@@ -69,7 +72,11 @@ export function WorkspaceClient({
       <main className="flex-1 flex flex-row pt-12 relative overflow-hidden">
         {/* Canvas area */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
-          <CanvasWrapper roomId={activeProject.id} />
+          <CanvasWrapper
+            roomId={activeProject.id}
+            templateToImport={templateToImport}
+            onImportConsumed={() => setTemplateToImport(null)}
+          />
 
         </div>
 

@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 12: Shape Panel (completed)
+- Feature 18: Starter Templates (completed)
 
 ## Current Goal
-- All planned feature specs (01–12) implemented and verified.
+- All planned feature specs (01–18) implemented and verified.
 
 ## Completed
 
@@ -22,11 +22,16 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 10: Liveblocks Setup — liveblocks.config.ts updated with typed Presence (cursor: {x,y}|null, isThinking: boolean) and UserMeta (id, name, avatar, color); lib/liveblocks.ts created with lazy-initialized cached node client (getLiveblocksClient) and deterministic cursor color helper (getCursorColor, 8-color palette); POST /api/liveblocks-auth created — requires Clerk auth, verifies project access via getProjectIfAccessible, ensures room exists via getOrCreateRoom (private by default, user gets room:write), returns ID-token session with name/avatar/color attached; @liveblocks/node installed. npm run build passes clean.
 - Feature 11: Base Canvas — Installed `@liveblocks/react`, `@liveblocks/react-flow`, `@xyflow/react`, and `react-error-boundary`. Created shared canvas types in `types/canvas.ts`. Created `CollaborativeCanvas` with React Flow, Background, and MiniMap, and `CanvasWrapper` with Liveblocks room/error fallback/suspense loading configurations. Replaced canvas placeholder in `WorkspaceClient` with the new Liveblocks-backed canvas wrapper. Verified `npm run build` compiles clean.
 - Feature 12: Shape Panel — Floating bottom toolbar with draggable shapes (rectangle, diamond, circle, pill, cylinder, hexagon), React Flow integration via ReactFlowProvider, onDragOver/onDrop handler, default sizes per shape, custom canvasNode renderer with 4 hover-revealed handles.
+- Feature 13: Node Shape — custom-node.tsx replaced with full shape-specific renderers: CSS border-radius for rectangle/pill/circle; inline SVG polygon for diamond/hexagon; inline SVG composited shapes for cylinder. Handles hidden at rest, visible on hover, accent-highlighted when node is selected. shape-panel.tsx extended with a cursor-following ghost preview: browser drag image suppressed, ghost follows mousemove, cleared on drop/dragend.
+- Feature 14: Node Editing — NodeResizer added to all nodes (visible only when selected, min 80×40 px, accent-colored handles/line); inline label editing via double-click opens a textarea overlay centered in the node, placeholder shown when empty, editing committed on blur or Escape via updateNodeData (integrates with existing onNodesChange flow), all pointer/mouse/touch events on the textarea stop propagation to prevent canvas drag or pan. npm run build passes clean.
+- Feature 15: Node Color Toolbar — floating swatch toolbar rendered above each selected node; 8-swatch NODE_COLORS palette (from types/canvas.ts); active swatch shows border + outline in its paired text color; hover produces a tight glow (box-shadow) using the swatch text color at low opacity; clicking a swatch calls updateNodeData with both color and textColor immediately; all toolbar events stop propagation to prevent canvas drag/pan; no server calls. npm run build passes clean.
+- Feature 16: Edge Behavior — NodeHandles updated to place both source and target handles on all four sides (top, right, bottom, left) with small white dots hidden by default and faded in on hover; CustomCanvasEdge created using getSmoothStepPath for right-angle routing with rounded corners; edges dimmed at rest (30% opacity), brightened on hover (cyan at 75%), and highlighted in accent-primary when selected; invisible strokeWidth-20 overlay path for easy hover/click without changing visible thickness; ArrowClosed markerEnd registered on defaultEdgeOptions; inline label editing via double-click, positioned at path midpoint using EdgeLabelRenderer, draft synced via useEffect, committed on blur/Enter/Escape; saved labels shown as pill badges; active edges with no label show faint "+ label" hint; all label events stop propagation; labels committed through onEdgesChange collaborative flow; CanvasEdgeData interface updated with optional label field; canvas-context.tsx updated to expose onEdgesChange. npm run build passes clean.
+- Feature 17: Canvas Ergonomics — Pill-shaped CanvasControlBar added at bottom-left of canvas (above shape panel) with two groups: zoom (zoom-out, fit-view, zoom-in) and history (undo, redo) separated by a thin divider; zoom controls call React Flow zoomIn/zoomOut/fitView with 200–300 ms animation; undo/redo wired to Liveblocks useUndo/useRedo; undo/redo buttons disabled and visually dimmed via useCanUndo/useCanRedo; hooks/useKeyboardShortcuts.ts created — receives ReactFlowInstance and undo/redo handlers, attaches a keydown listener on window, skips shortcuts when activeElement is input/textarea/select/contentEditable; supports +/= to zoom in, - to zoom out, Ctrl/Cmd+Z to undo, Ctrl/Cmd+Shift+Z to redo, Ctrl/Cmd+Y to redo; MiniMap removed from canvas; npm run build passes clean.
+- Feature 18: Starter Templates — Created `components/editor/starter-templates.ts` defining `CanvasTemplate` and three pre-built system topologies (Microservices, CI/CD pipeline, Event-Driven). Created `components/editor/starter-templates-modal.tsx` rendering a dialog with design cards showing lightweight SVG-based custom shape/edge previews of template geometry without instantiating React Flow. Wired opening trigger to navbar templates button and tied template selection to clear-then-insert execution using existing `onDelete`, `onNodesChange`, and `onEdgesChange` flow. Fits view on import. npm run build passes clean.
 
 ## In Progress
 
 - None
-
 
 ## Open Questions
 
@@ -45,6 +50,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Using Next.js 16.2.10 with React 19 and Tailwind CSS v4.
 - shadcn version 4.5.0 was used; it auto-detected Tailwind v4.
 - lucide-react ^1.25.0 installed as a direct dependency.
-- All 12 feature specs implemented. Next steps will be defined when new specs are added.
+- All 18 feature specs (01–18) implemented and verified. Next steps will be defined when new specs are added.
+- Custom edges use getSmoothStepPath (not getBezierPath) for right-angle routing — EdgeLabelRenderer label position derived directly from path midpoint coordinates, not calculated manually.
 - LIVEBLOCKS_SECRET_KEY must be added to .env.local (from https://liveblocks.io/dashboard/apikeys) before /api/liveblocks-auth will function at runtime.
 

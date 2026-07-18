@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { PanelLeftClose, PanelLeftOpen, Share2, MessageSquare } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Share2, MessageSquare, LayoutTemplate } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import type { CanvasTemplate } from "@/components/editor/starter-templates";
 
 interface WorkspaceNavbarProps {
   projectId: string;
@@ -14,6 +16,7 @@ interface WorkspaceNavbarProps {
   onSidebarToggle: () => void;
   isAiSidebarOpen: boolean;
   onAiSidebarToggle: () => void;
+  onImportTemplate?: (template: CanvasTemplate) => void;
 }
 
 export function WorkspaceNavbar({
@@ -24,8 +27,16 @@ export function WorkspaceNavbar({
   onSidebarToggle,
   isAiSidebarOpen,
   onAiSidebarToggle,
+  onImportTemplate,
 }: WorkspaceNavbarProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
+  function handleImport(template: CanvasTemplate) {
+    if (onImportTemplate) {
+      onImportTemplate(template);
+    }
+  }
 
   return (
     <>
@@ -64,8 +75,25 @@ export function WorkspaceNavbar({
           </span>
         </div>
 
-        {/* Right — share button, AI toggle, user */}
+        {/* Right — templates, share button, AI toggle, user */}
         <div className="flex items-center gap-2">
+          {/* Starter templates */}
+          <Button
+            variant="ghost"
+            size="sm"
+            id="workspace-templates-button"
+            aria-label="Open starter templates"
+            onClick={() => setTemplatesOpen(true)}
+            className="h-8 gap-1.5 px-3 text-xs font-medium"
+            style={{
+              color: "var(--text-secondary)",
+              border: "1px solid var(--border-default)",
+            }}
+          >
+            <LayoutTemplate className="h-3.5 w-3.5" />
+            Templates
+          </Button>
+
           {/* Share */}
           <Button
             variant="ghost"
@@ -111,6 +139,12 @@ export function WorkspaceNavbar({
         projectId={projectId}
         isOwner={isOwner}
         onClose={() => setShareOpen(false)}
+      />
+
+      <StarterTemplatesModal
+        open={templatesOpen}
+        onImport={handleImport}
+        onClose={() => setTemplatesOpen(false)}
       />
     </>
   );

@@ -5,9 +5,12 @@ import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { CollaborativeCanvas } from "./canvas";
+import type { CanvasTemplate } from "./starter-templates";
 
 interface CanvasWrapperProps {
   roomId: string;
+  templateToImport?: CanvasTemplate | null;
+  onImportConsumed?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -88,7 +91,11 @@ function CanvasError({ error }: FallbackProps) {
  * - ErrorBoundary catches Liveblocks connection errors
  * - ClientSideSuspense shows a loading state while the room connects
  */
-export function CanvasWrapper({ roomId }: CanvasWrapperProps) {
+export function CanvasWrapper({
+  roomId,
+  templateToImport,
+  onImportConsumed,
+}: CanvasWrapperProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider
@@ -98,7 +105,10 @@ export function CanvasWrapper({ roomId }: CanvasWrapperProps) {
         <ErrorBoundary FallbackComponent={CanvasError}>
           <ClientSideSuspense fallback={<CanvasLoading />}>
             <ReactFlowProvider>
-              <CollaborativeCanvas />
+              <CollaborativeCanvas
+                templateToImport={templateToImport}
+                onImportConsumed={onImportConsumed}
+              />
             </ReactFlowProvider>
           </ClientSideSuspense>
         </ErrorBoundary>
