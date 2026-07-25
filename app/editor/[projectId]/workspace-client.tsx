@@ -85,24 +85,22 @@ export function WorkspaceClient({
 
       {/* Main workspace — canvas + optional AI sidebar */}
       <main className="flex-1 flex flex-row pt-12 relative overflow-hidden">
-        {/* Canvas area */}
-        <div className="flex-1 flex flex-col relative overflow-hidden">
-          <CanvasWrapper
+        <CanvasWrapper
+          roomId={activeProject.id}
+          projectId={activeProject.id}
+          templateToImport={templateToImport}
+          onImportConsumed={() => setTemplateToImport(null)}
+          onSaveStatusChange={handleSaveStatusChange}
+          onRegisterManualSave={handleRegisterManualSave}
+        >
+          {/* Right AI sidebar */}
+          <AiSidebar
+            isOpen={aiSidebarOpen}
+            onClose={() => setAiSidebarOpen(false)}
             roomId={activeProject.id}
             projectId={activeProject.id}
-            templateToImport={templateToImport}
-            onImportConsumed={() => setTemplateToImport(null)}
-            onSaveStatusChange={handleSaveStatusChange}
-            onRegisterManualSave={handleRegisterManualSave}
           />
-
-        </div>
-
-        {/* Right AI sidebar */}
-        <AiSidebar
-          isOpen={aiSidebarOpen}
-          onClose={() => setAiSidebarOpen(false)}
-        />
+        </CanvasWrapper>
       </main>
 
       {/* Dialogs */}

@@ -102,26 +102,32 @@ export function CanvasWrapper({
   onImportConsumed,
   onSaveStatusChange,
   onRegisterManualSave,
-}: CanvasWrapperProps) {
+  children,
+}: CanvasWrapperProps & { children?: React.ReactNode }) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider
         id={roomId}
         initialPresence={{ cursor: null, isThinking: false, thinking: false }}
       >
-        <ErrorBoundary FallbackComponent={CanvasError}>
-          <ClientSideSuspense fallback={<CanvasLoading />}>
-            <ReactFlowProvider>
-              <CollaborativeCanvas
-                projectId={projectId}
-                templateToImport={templateToImport}
-                onImportConsumed={onImportConsumed}
-                onSaveStatusChange={onSaveStatusChange}
-                onRegisterManualSave={onRegisterManualSave}
-              />
-            </ReactFlowProvider>
-          </ClientSideSuspense>
-        </ErrorBoundary>
+        <div className="flex-1 flex flex-row relative overflow-hidden h-full w-full">
+          <div className="flex-1 flex flex-col relative overflow-hidden">
+            <ErrorBoundary FallbackComponent={CanvasError}>
+              <ClientSideSuspense fallback={<CanvasLoading />}>
+                <ReactFlowProvider>
+                  <CollaborativeCanvas
+                    projectId={projectId}
+                    templateToImport={templateToImport}
+                    onImportConsumed={onImportConsumed}
+                    onSaveStatusChange={onSaveStatusChange}
+                    onRegisterManualSave={onRegisterManualSave}
+                  />
+                </ReactFlowProvider>
+              </ClientSideSuspense>
+            </ErrorBoundary>
+          </div>
+          {children}
+        </div>
       </RoomProvider>
     </LiveblocksProvider>
   );

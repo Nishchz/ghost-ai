@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-// Define Liveblocks types for your application.
-// https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
-
 declare global {
   interface Liveblocks {
     // Each user's Presence, for useMyPresence, useOthers, etc.
@@ -9,13 +5,16 @@ declare global {
       /** Current canvas cursor position (null when off-canvas). */
       cursor: { x: number; y: number } | null;
       /** True while the AI agent is generating a design. */
-      isThinking: boolean;
+      isThinking?: boolean;
       /** True while the user or agent is thinking/generating. */
-      thinking: boolean;
+      thinking?: boolean;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
-    Storage: {};
+    Storage: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      flow?: any;
+    };
 
     // Custom user info set when authenticating with a secret key.
     UserMeta: {
@@ -31,7 +30,28 @@ declare global {
     };
 
     // Custom events, for useBroadcastEvent, useEventListener.
-    RoomEvent: {};
+    // Two separate feeds: ai-status-feed (presence/progress) and ai-chat (room chat).
+    RoomEvent:
+      | {
+          type: "ai-status-feed";
+          payload: {
+            status?: string;
+            text?: string;
+            runId?: string;
+            timestamp?: number;
+          };
+        }
+      | {
+          type: "ai-chat";
+          payload: {
+            id: string;
+            sender: string;
+            senderName: string;
+            role: "user" | "assistant";
+            content: string;
+            timestamp: string;
+          };
+        };
 
     // Custom metadata set on threads, for useThreads, useCreateThread, etc.
     ThreadMetadata: {};

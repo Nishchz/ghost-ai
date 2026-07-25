@@ -18,6 +18,7 @@ import {
   Maximize2,
   Undo2,
   Redo2,
+  Loader2,
 } from "lucide-react";
 import { CANVAS_NODE_TYPE, CANVAS_EDGE_TYPE, DEFAULT_NODE_COLOR } from "@/types/canvas";
 import { CustomCanvasNode } from "./custom-node";
@@ -113,19 +114,18 @@ function CanvasControlBar({
           height: "1.25rem",
           backgroundColor: "var(--border-default)",
           margin: "0 0.25rem",
-          flexShrink: 0,
         }}
       />
 
       {/* History group */}
       <ControlButton
-        label="Undo"
+        label="Undo (Ctrl+Z)"
         onClick={onUndo}
         disabled={!canUndo}
         icon={<Undo2 size={15} />}
       />
       <ControlButton
-        label="Redo"
+        label="Redo (Ctrl+Shift+Z)"
         onClick={onRedo}
         disabled={!canRedo}
         icon={<Redo2 size={15} />}
@@ -134,17 +134,20 @@ function CanvasControlBar({
   );
 }
 
-interface ControlButtonProps {
+function ControlButton({
+  label,
+  onClick,
+  disabled,
+  icon,
+}: {
   label: string;
-  icon: React.ReactNode;
   onClick: () => void;
   disabled: boolean;
-}
-
-function ControlButton({ label, icon, onClick, disabled }: ControlButtonProps) {
+  icon: React.ReactNode;
+}) {
   return (
     <button
-      aria-label={label}
+      type="button"
       title={label}
       onClick={onClick}
       disabled={disabled}
@@ -156,26 +159,22 @@ function ControlButton({ label, icon, onClick, disabled }: ControlButtonProps) {
         height: "2rem",
         borderRadius: "9999px",
         border: "none",
-        background: "transparent",
-        cursor: disabled ? "not-allowed" : "pointer",
+        backgroundColor: "transparent",
         color: disabled ? "var(--text-faint)" : "var(--text-secondary)",
-        opacity: disabled ? 0.4 : 1,
-        transition: "color 150ms ease, background-color 150ms ease, opacity 150ms ease",
+        cursor: disabled ? "not-allowed" : "pointer",
+        transition: "color 0.15s ease, background-color 0.15s ease",
       }}
       onMouseEnter={(e) => {
         if (!disabled) {
-          (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-            "var(--bg-subtle)";
-          (e.currentTarget as HTMLButtonElement).style.color =
-            "var(--text-primary)";
+          e.currentTarget.style.backgroundColor = "var(--bg-subtle)";
+          e.currentTarget.style.color = "var(--text-primary)";
         }
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-          "transparent";
-        (e.currentTarget as HTMLButtonElement).style.color = disabled
-          ? "var(--text-faint)"
-          : "var(--text-secondary)";
+        if (!disabled) {
+          e.currentTarget.style.backgroundColor = "transparent";
+          e.currentTarget.style.color = "var(--text-secondary)";
+        }
       }}
     >
       {icon}
@@ -184,16 +183,14 @@ function ControlButton({ label, icon, onClick, disabled }: ControlButtonProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers for Presence and Cursors
+// Helpers
 // ---------------------------------------------------------------------------
 
 function getInitials(name: string): string {
-  if (!name) return "?";
+  if (!name) return "C";
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return parts[0][0].toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 interface ParticipantAvatarGroupProps {
@@ -341,6 +338,7 @@ function CollaboratorCursors({ currentClerkUserId }: CollaboratorCursorsProps) {
 
         const name = info?.name || "Collaborator";
         const color = info?.color || "#7C3AED";
+        const isThinking = Boolean(presence.thinking || presence.isThinking);
         
         // Transform canvas coordinate space into client viewport space
         const x = presence.cursor.x * zoom + vpX;
@@ -356,10 +354,13 @@ function CollaboratorCursors({ currentClerkUserId }: CollaboratorCursorsProps) {
           >
             <CursorIcon color={color} />
             <div
-              className="absolute left-4 top-4 px-2 py-0.5 rounded-md text-[10px] font-medium text-white shadow-md truncate max-w-[120px] border border-white/10"
+              className="absolute left-4 top-4 px-2 py-0.5 rounded-md text-[10px] font-medium text-white shadow-md truncate max-w-[140px] border border-white/10 flex items-center gap-1.5"
               style={{ backgroundColor: color }}
             >
-              {name}
+              {isThinking && (
+                <Loader2 className="h-2.5 w-2.5 animate-spin text-white shrink-0" />
+              )}
+              <span className="truncate">{name}</span>
             </div>
           </div>
         );
