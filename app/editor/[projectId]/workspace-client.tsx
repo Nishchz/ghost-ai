@@ -132,19 +132,6 @@ export function WorkspaceClient({
       className="relative h-screen flex flex-col overflow-hidden"
       style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}
     >
-      <WorkspaceNavbar
-        projectId={activeProject.id}
-        projectName={activeProject.name}
-        isOwner={isOwner}
-        isSidebarOpen={sidebarOpen}
-        onSidebarToggle={() => setSidebarOpen((prev) => !prev)}
-        isAiSidebarOpen={aiSidebarOpen}
-        onAiSidebarToggle={() => setAiSidebarOpen((prev) => !prev)}
-        onImportTemplate={setTemplateToImport}
-        saveStatus={saveStatus}
-        onManualSave={handleManualSave}
-      />
-
       <ProjectSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -156,7 +143,7 @@ export function WorkspaceClient({
       />
 
       {/* Main workspace — canvas + optional AI sidebar */}
-      <main className="flex-1 flex flex-row pt-12 relative overflow-hidden">
+      <main className="flex-1 flex flex-row relative overflow-hidden">
         <CanvasWrapper
           roomId={activeProject.id}
           projectId={activeProject.id}
@@ -164,6 +151,20 @@ export function WorkspaceClient({
           onImportConsumed={() => setTemplateToImport(null)}
           onSaveStatusChange={handleSaveStatusChange}
           onRegisterManualSave={handleRegisterManualSave}
+          navbar={
+            <WorkspaceNavbar
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+              isOwner={isOwner}
+              isSidebarOpen={sidebarOpen}
+              onSidebarToggle={() => setSidebarOpen((prev) => !prev)}
+              isAiSidebarOpen={aiSidebarOpen}
+              onAiSidebarToggle={() => setAiSidebarOpen((prev) => !prev)}
+              onImportTemplate={setTemplateToImport}
+              saveStatus={saveStatus}
+              onManualSave={handleManualSave}
+            />
+          }
         >
           {/* Right AI sidebar */}
           <AiSidebar

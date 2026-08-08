@@ -11,7 +11,7 @@ import {
 } from "@xyflow/react";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 import { useUndo, useRedo, useCanUndo, useCanRedo, useOthers, useMyPresence } from "@liveblocks/react";
-import { useUser, UserButton } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import {
   ZoomIn,
   ZoomOut,
@@ -50,117 +50,6 @@ function generateNodeId(shape: string): string {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function getInitials(name: string): string {
-  if (!name) return "C";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-interface ParticipantAvatarGroupProps {
-  currentClerkUserId?: string | null;
-}
-
-function ParticipantAvatarGroup({ currentClerkUserId }: ParticipantAvatarGroupProps) {
-  const others = useOthers();
-  
-  // Group by user ID to prevent duplicate avatars for multiple tabs of the same collaborator
-  const uniqueCollaborators: Array<(typeof others)[number]> = [];
-  const seenUserIds = new Set<string>();
-
-  for (const other of others) {
-    if (!other.id) continue;
-    if (currentClerkUserId && other.id === currentClerkUserId) continue;
-    if (!seenUserIds.has(other.id)) {
-      seenUserIds.add(other.id);
-      uniqueCollaborators.push(other);
-    }
-  }
-
-  const hasCollaborators = uniqueCollaborators.length > 0;
-
-  return (
-    <div
-      className="fixed sm:absolute top-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:top-4 right-3 sm:right-4 z-40 flex items-center"
-      style={{
-        ...(hasCollaborators
-          ? {
-              backgroundColor: "var(--bg-elevated)",
-              border: "1px solid var(--border-default)",
-              borderRadius: "9999px",
-              padding: "0.25rem 0.375rem 0.25rem 0.25rem",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
-              gap: "0.5rem",
-            }
-          : {}),
-      }}
-    >
-      {hasCollaborators && (
-        <>
-          {/* Collaborators stack */}
-          <div className="flex -space-x-2">
-            {uniqueCollaborators.slice(0, 5).map((col) => {
-              const name = col.info?.name || "Collaborator";
-              const avatar = col.info?.avatar || "";
-              const color = col.info?.color || "#7C3AED";
-              const initials = getInitials(name);
-              
-              return (
-                <div
-                  key={col.connectionId}
-                  title={name}
-                  className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-[var(--text-primary)] relative border-2 border-[var(--bg-elevated)] overflow-hidden select-none"
-                  style={{
-                    backgroundColor: color,
-                  }}
-                >
-                  {avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={avatar}
-                      alt={name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span>{initials}</span>
-                  )}
-                </div>
-              );
-            })}
-            
-            {uniqueCollaborators.length > 5 && (
-              <div
-                title={`${uniqueCollaborators.length - 5} more collaborators`}
-                className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-[var(--text-secondary)] border-2 border-[var(--bg-elevated)] bg-[var(--bg-subtle)] select-none"
-              >
-                +{uniqueCollaborators.length - 5}
-              </div>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div
-            style={{
-              width: "1px",
-              height: "1.25rem",
-              backgroundColor: "var(--border-default)",
-            }}
-          />
-        </>
-      )}
-
-      {/* Current User Button */}
-      <UserButton
-        appearance={{
-          elements: {
-            userButtonAvatarBox: "h-8 w-8",
-          },
-        }}
-      />
-    </div>
-  );
-}
 
 function CursorIcon({ color }: { color: string }) {
   return (
@@ -562,9 +451,6 @@ export function CollaborativeCanvas({
         canUndo={canUndo}
         canRedo={canRedo}
       />
-
-      {/* Participant Avatar Group floating in the top-right corner */}
-      <ParticipantAvatarGroup currentClerkUserId={currentClerkUserId} />
 
       {/* Collaborator Cursors Overlay */}
       <CollaboratorCursors currentClerkUserId={currentClerkUserId} />

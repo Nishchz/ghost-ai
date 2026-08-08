@@ -197,9 +197,10 @@ function ControlButton({
     <button
       type="button"
       title={label}
+      aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-none bg-transparent transition-colors disabled:cursor-not-allowed select-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] disabled:text-[var(--text-faint)] disabled:hover:bg-transparent"
+      className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-none bg-transparent transition-colors disabled:cursor-not-allowed select-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] disabled:text-[var(--text-faint)] disabled:hover:bg-transparent touch-manipulation pointer-events-auto cursor-pointer"
     >
       {icon}
     </button>
@@ -284,7 +285,7 @@ export function ShapePanel({
       <DragGhostPortal ghost={ghost} />
 
       <div
-        className="fixed sm:absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom,16px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl sm:rounded-full border shadow-2xl backdrop-blur-md max-w-[calc(100vw-1.5rem)] select-none touch-none transition-all"
+        className="fixed sm:absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom,16px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl sm:rounded-full border shadow-2xl backdrop-blur-md max-w-[calc(100vw-1.5rem)] select-none pointer-events-auto touch-manipulation transition-all"
         style={{
           backgroundColor: "rgba(24, 24, 28, 0.88)",
           borderColor: "var(--border-default)",
@@ -349,16 +350,21 @@ export function ShapePanel({
               const Icon = item.icon;
               return (
                 <div key={item.shape} className="group relative shrink-0">
-                  <div
+                  <button
+                    type="button"
                     draggable
                     onDragStart={(e) => handleDragStart(e, item.shape)}
                     onDragEnd={handleDragEnd}
-                    onClick={() => onAddNode?.(item.shape)}
-                    className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full cursor-grab active:cursor-grabbing hover:bg-[var(--bg-subtle)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    title={`${item.label} (Drag or tap to add)`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddNode?.(item.shape);
+                    }}
+                    className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full cursor-pointer hover:bg-[var(--bg-subtle)] active:scale-95 transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] touch-manipulation pointer-events-auto select-none"
+                    title={`${item.label} (Tap to add or drag)`}
+                    aria-label={`Add ${item.label} shape`}
                   >
                     <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </div>
+                  </button>
 
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
