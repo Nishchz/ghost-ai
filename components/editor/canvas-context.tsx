@@ -13,8 +13,8 @@ interface CanvasContextType {
   onEdgesChange?: any;
   /** Replace the current canvas with a starter template. */
   onImportTemplate?: (template: CanvasTemplate) => void;
-  /** Add a shape node directly to the center of the canvas viewport. */
-  onAddNode?: (shape: any) => void;
+  /** Add a shape node directly to the center of the canvas viewport or specified screen coordinates. */
+  onAddNode?: (shape: any, position?: { x: number; y: number }) => void;
 }
 
 export const CanvasContext = createContext<CanvasContextType>({});

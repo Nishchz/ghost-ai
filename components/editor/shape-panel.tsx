@@ -193,12 +193,38 @@ function ControlButton({
   disabled?: boolean;
   icon: React.ReactNode;
 }) {
+  const lastTouchTimeRef = useRef(0);
+
+  const stopAllEvents = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (disabled) return;
+    lastTouchTimeRef.current = Date.now();
+    onClick?.();
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (disabled) return;
+    if (Date.now() - lastTouchTimeRef.current < 400) return;
+    onClick?.();
+  };
+
   return (
     <button
       type="button"
       title={label}
       aria-label={label}
-      onClick={onClick}
+      onClick={handleClick}
+      onTouchEnd={handleTouchEnd}
+      onPointerDown={stopAllEvents}
+      onTouchStart={stopAllEvents}
+      onMouseDown={stopAllEvents}
+      onPointerUp={stopAllEvents}
       disabled={disabled}
       className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-none bg-transparent transition-colors disabled:cursor-not-allowed select-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] disabled:text-[var(--text-faint)] disabled:hover:bg-transparent touch-manipulation pointer-events-auto cursor-pointer"
     >
@@ -232,9 +258,15 @@ export function ShapePanel({
 }: ShapePanelProps) {
   const [ghost, setGhost] = useState<GhostState | null>(null);
   const draggingShape = useRef<NodeShape | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const lastShapeTouchTimeRef = useRef(0);
   const { onAddNode } = useCanvasContext();
 
-  // Track mouse position globally while dragging
+  const stopAllEvents = useCallback((e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  // Track mouse position globally while dragging on desktop
   const onMouseMove = useCallback((e: MouseEvent) => {
     if (!draggingShape.current) return;
     setGhost({ shape: draggingShape.current, x: e.clientX, y: e.clientY });
@@ -280,6 +312,60 @@ export function ShapePanel({
     clearGhost();
   };
 
+  // Mobile Touch Handlers
+  const handleTouchStartShape = (e: React.TouchEvent, shape: NodeShape) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    draggingShape.current = shape;
+  };
+
+  const handleTouchMoveShape = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (!draggingShape.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    setGhost({
+      shape: draggingShape.current,
+      x: touch.clientX,
+      y: touch.clientY,
+    });
+  };
+
+  const handleTouchEndShape = (e: React.TouchEvent, shape: NodeShape) => {
+    e.stopPropagation();
+    e.preventDefault();
+    lastShapeTouchTimeRef.current = Date.now();
+
+    const touch = e.changedTouches[0];
+    if (touch && touchStartPos.current) {
+      const dx = touch.clientX - touchStartPos.current.x;
+      const dy = touch.clientY - touchStartPos.current.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 15) {
+        // Dragged finger to canvas area
+        onAddNode?.(shape, { x: touch.clientX, y: touch.clientY });
+      } else {
+        // Simple tap on button
+        onAddNode?.(shape);
+      }
+    } else {
+      onAddNode?.(shape);
+    }
+
+    touchStartPos.current = null;
+    clearGhost();
+  };
+
+  const handleShapeClick = (e: React.MouseEvent, shape: NodeShape) => {
+    e.stopPropagation();
+    if (Date.now() - lastShapeTouchTimeRef.current < 400) return;
+    onAddNode?.(shape);
+  };
+
   return (
     <>
       <DragGhostPortal ghost={ghost} />
@@ -290,6 +376,9 @@ export function ShapePanel({
           backgroundColor: "rgba(24, 24, 28, 0.88)",
           borderColor: "var(--border-default)",
         }}
+        onPointerDown={stopAllEvents}
+        onTouchStart={stopAllEvents}
+        onMouseDown={stopAllEvents}
       >
         {/* Controls group — Zoom + History */}
         <div className="flex items-center gap-0.5 sm:gap-1 px-1 py-0.5 sm:border-r sm:border-[var(--border-default)] sm:pr-2 shrink-0">
@@ -355,10 +444,12 @@ export function ShapePanel({
                     draggable
                     onDragStart={(e) => handleDragStart(e, item.shape)}
                     onDragEnd={handleDragEnd}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddNode?.(item.shape);
-                    }}
+                    onTouchStart={(e) => handleTouchStartShape(e, item.shape)}
+                    onTouchMove={handleTouchMoveShape}
+                    onTouchEnd={(e) => handleTouchEndShape(e, item.shape)}
+                    onPointerDown={stopAllEvents}
+                    onMouseDown={stopAllEvents}
+                    onClick={(e) => handleShapeClick(e, item.shape)}
                     className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full cursor-pointer hover:bg-[var(--bg-subtle)] active:scale-95 transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] touch-manipulation pointer-events-auto select-none"
                     title={`${item.label} (Tap to add or drag)`}
                     aria-label={`Add ${item.label} shape`}
@@ -388,3 +479,4 @@ export function ShapePanel({
     </>
   );
 }
+

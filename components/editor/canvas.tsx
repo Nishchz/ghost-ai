@@ -364,19 +364,21 @@ export function CollaborativeCanvas({
   );
 
   const handleAddNode = useCallback(
-    (shape: NodeShape) => {
+    (shape: NodeShape, position?: { x: number; y: number }) => {
       const size = SHAPE_DEFAULT_SIZES[shape] || { width: 120, height: 80 };
-      const centerFlowPosition = screenToFlowPosition({
-        x: typeof window !== "undefined" ? window.innerWidth / 2 : 400,
-        y: typeof window !== "undefined" ? window.innerHeight / 2 : 300,
-      });
+      const targetFlowPosition = position
+        ? screenToFlowPosition(position)
+        : screenToFlowPosition({
+            x: typeof window !== "undefined" ? window.innerWidth / 2 : 400,
+            y: typeof window !== "undefined" ? window.innerHeight / 2 : 300,
+          });
 
       const newNode = {
         id: generateNodeId(shape),
         type: CANVAS_NODE_TYPE,
         position: {
-          x: centerFlowPosition.x - size.width / 2,
-          y: centerFlowPosition.y - size.height / 2,
+          x: targetFlowPosition.x - size.width / 2,
+          y: targetFlowPosition.y - size.height / 2,
         },
         data: {
           label: "",

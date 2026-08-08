@@ -473,35 +473,42 @@ function NodeColorToolbar({ nodeId, activeFill }: NodeColorToolbarProps) {
       }}
       onMouseDown={stopAll}
       onPointerDown={stopAll}
+      onTouchStart={stopAll}
       onClick={stopAll}
       onDoubleClick={stopAll}
     >
       {NODE_COLORS.map((pair) => {
         const isActive = pair.fill === activeFill;
+        const handleColorSelect = (e: React.SyntheticEvent) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const node = getNode(nodeId);
+          if (node && onNodesChange) {
+            onNodesChange([
+              {
+                id: nodeId,
+                type: "replace",
+                item: {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    color: pair.fill,
+                    textColor: pair.text,
+                  },
+                },
+              },
+            ]);
+          }
+        };
+
         return (
           <button
             key={pair.fill}
             title={pair.label}
-            onClick={(e) => {
-              e.stopPropagation();
-              const node = getNode(nodeId);
-              if (node && onNodesChange) {
-                onNodesChange([
-                  {
-                    id: nodeId,
-                    type: "replace",
-                    item: {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        color: pair.fill,
-                        textColor: pair.text,
-                      },
-                    },
-                  },
-                ]);
-              }
-            }}
+            onClick={handleColorSelect}
+            onTouchEnd={handleColorSelect}
+            onPointerDown={stopAll}
+            onTouchStart={stopAll}
             style={{
               width: 18,
               height: 18,
@@ -574,6 +581,7 @@ function NodeDeleteButton({ nodeId }: NodeDeleteButtonProps) {
       type="button"
       title="Delete shape"
       onClick={handleDelete}
+      onTouchEnd={handleDelete}
       onMouseDown={stopAll}
       onPointerDown={stopAll}
       onTouchStart={stopAll}
