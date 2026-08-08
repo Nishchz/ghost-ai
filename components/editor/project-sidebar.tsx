@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Plus, FolderOpen, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { X, Plus, FolderOpen, MoreHorizontal, Pencil, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -43,6 +43,7 @@ function ProjectItem({ project, activeProjectId, onRename, onDelete }: ProjectIt
   const isActive = project.id === activeProjectId;
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const hasCollaborators = (project.collaborators?.length ?? 0) > 0;
 
   return (
     <div
@@ -71,6 +72,21 @@ function ProjectItem({ project, activeProjectId, onRename, onDelete }: ProjectIt
       >
         {project.name}
       </span>
+
+      {/* Shared indicator badge for owner */}
+      {hasCollaborators && (
+        <span
+          className="relative flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-medium shrink-0"
+          style={{
+            backgroundColor: "var(--accent-primary-dim)",
+            color: "var(--accent-primary)",
+          }}
+          title={`Shared with ${project.collaborators.length} collaborator(s)`}
+        >
+          <Users className="h-3 w-3" />
+          {project.collaborators.length}
+        </span>
+      )}
 
       {/* Actions — only for owned projects */}
       {project.owned && (
@@ -147,7 +163,9 @@ export function ProjectSidebar({
   onDelete,
 }: ProjectSidebarProps) {
   const myProjects = projects.filter((p) => p.owned);
-  const sharedProjects = projects.filter((p) => !p.owned);
+  const sharedProjects = projects.filter(
+    (p) => !p.owned || (p.collaborators && p.collaborators.length > 0)
+  );
 
   return (
     <>

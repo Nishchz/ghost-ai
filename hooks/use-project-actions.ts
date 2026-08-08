@@ -16,6 +16,7 @@ export interface Project {
     id: string;
     projectId: string;
     email: string;
+    status?: "PENDING" | "ACCEPTED";
     createdAt: string | Date;
   }[];
 }

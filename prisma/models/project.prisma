@@ -3,6 +3,11 @@ enum ProjectStatus {
   ARCHIVED
 }
 
+enum CollaboratorStatus {
+  PENDING
+  ACCEPTED
+}
+
 model Project {
   id             String              @id @default(cuid())
   ownerId        String              @map("owner_id")
@@ -22,12 +27,14 @@ model Project {
 }
 
 model ProjectCollaborator {
-  id          String   @id @default(cuid())
-  projectId   String   @map("project_id")
+  id          String             @id @default(cuid())
+  projectId   String             @map("project_id")
   email       String
-  createdAt   DateTime @default(now()) @map("created_at")
+  status      CollaboratorStatus @default(PENDING)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @default(now()) @map("updated_at")
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, email])
   @@index([email])

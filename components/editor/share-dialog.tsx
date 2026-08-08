@@ -1,12 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserRound, Link2, X, Plus, Loader2, Check } from "lucide-react";
+import {
+  UserRound,
+  Link2,
+  X,
+  Plus,
+  Loader2,
+  Check,
+  Mail,
+  CheckCircle2,
+  Send,
+  Users,
+  Clock,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +32,7 @@ interface Collaborator {
   id: string;
   projectId: string;
   email: string;
+  status?: "PENDING" | "ACCEPTED";
   createdAt: string;
   displayName: string | null;
   avatarUrl: string | null;
@@ -29,7 +45,7 @@ interface ShareDialogProps {
   onClose: () => void;
 }
 
-// ─── Avatar ──────────────────────────────────────────────────────────────────
+// ─── Avatar Component ────────────────────────────────────────────────────────
 
 function CollaboratorAvatar({
   avatarUrl,
@@ -53,7 +69,7 @@ function CollaboratorAvatar({
       <img
         src={avatarUrl}
         alt={displayName ?? email}
-        className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+        className="h-8 w-8 rounded-full object-cover flex-shrink-0 border border-white/10"
       />
     );
   }
@@ -62,7 +78,7 @@ function CollaboratorAvatar({
     <div
       className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0"
       style={{
-        backgroundColor: "var(--bg-subtle)",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
         color: "var(--text-secondary)",
         border: "1px solid var(--border-subtle)",
       }}
@@ -72,7 +88,7 @@ function CollaboratorAvatar({
   );
 }
 
-// ─── ShareDialog ─────────────────────────────────────────────────────────────
+// ─── ShareDialog Component ───────────────────────────────────────────────────
 
 export function ShareDialog({
   open,
@@ -85,33 +101,42 @@ export function ShareDialog({
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   // ── Fetch collaborators ──────────────────────────────────────────────────
-  const fetchCollaborators = useCallback(async () => {
-    setLoading(true);
+  const fetchCollaborators = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const res = await fetch(`/api/projects/${projectId}/collaborators`);
       if (res.ok) {
         const data = await res.json();
         setCollaborators(data.collaborators ?? []);
       }
+      // On non-ok (e.g. 500 P1017), silently keep existing data — next poll will retry
+    } catch {
+      // Network error — keep existing data, next poll will retry
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [projectId]);
 
+  // ── Auto-fetch on open + poll every 10 s to catch PENDING→ACCEPTED ────────
   useEffect(() => {
-    if (open) {
-      fetchCollaborators();
-    }
+    if (!open) return;
+    fetchCollaborators(true);   // show spinner on initial open
+    const interval = setInterval(() => fetchCollaborators(false), 10_000); // silent poll
+    return () => clearInterval(interval);
   }, [open, fetchCollaborators]);
+
 
   // ── Invite ───────────────────────────────────────────────────────────────
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     setInviteError(null);
+    setInviteSuccess(null);
     const email = inviteEmail.trim();
     if (!email) return;
 
@@ -130,9 +155,38 @@ export function ShareDialog({
       }
 
       setCollaborators((prev) => [...prev, data as Collaborator]);
+      setInviteSuccess(
+        data.emailSimulated
+          ? `Invitation sent to ${email} (Dev terminal mode)`
+          : `Invitation email dispatched to ${email}`
+      );
       setInviteEmail("");
+      setTimeout(() => setInviteSuccess(null), 5000);
     } finally {
       setInviting(false);
+    }
+  }
+
+  // ── Resend ───────────────────────────────────────────────────────────────
+  async function handleResend(collaboratorId: string, email: string) {
+    setResendingId(collaboratorId);
+    setInviteError(null);
+    setInviteSuccess(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/collaborators/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collaboratorId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setInviteSuccess(`Invitation resent to ${email}`);
+        setTimeout(() => setInviteSuccess(null), 4000);
+      } else {
+        setInviteError(data.error ?? "Failed to resend invitation.");
+      }
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -164,52 +218,73 @@ export function ShareDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        className="sm:max-w-md rounded-3xl p-0 gap-0 overflow-hidden"
+        className="sm:max-w-lg rounded-3xl p-0 gap-0 overflow-hidden shadow-2xl backdrop-blur-xl border border-white/10"
         style={{
-          backgroundColor: "var(--bg-surface)",
-          border: "1px solid var(--border-default)",
+          backgroundColor: "rgba(17, 17, 20, 0.95)",
         }}
       >
         {/* Header */}
         <DialogHeader
-          className="px-6 pt-6 pb-4"
+          className="px-6 pt-6 pb-4 flex flex-col gap-1.5"
           style={{ borderBottom: "1px solid var(--border-default)" }}
         >
-          <DialogTitle
-            className="text-base font-semibold"
-            style={{ color: "var(--text-primary)" }}
+          <div className="flex items-center gap-2">
+            <div
+              className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: "rgba(98, 192, 115, 0.15)",
+                color: "#62C073",
+                border: "1px solid rgba(98, 192, 115, 0.3)",
+              }}
+            >
+              <Users className="h-4 w-4" />
+            </div>
+            <DialogTitle
+              className="text-base font-semibold tracking-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Share Architecture Project
+            </DialogTitle>
+          </div>
+          <DialogDescription
+            className="text-xs"
+            style={{ color: "var(--text-muted)" }}
           >
-            Share Project
-          </DialogTitle>
+            Invite collaborators to build and edit system design graphs together in real time.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5 px-6 py-5">
           {/* Invite form — owners only */}
           {isOwner && (
             <form onSubmit={handleInvite} className="flex flex-col gap-2">
-              <p
-                className="text-xs font-medium mb-1"
+              <label
+                htmlFor="share-dialog-invite-email"
+                className="text-xs font-medium flex items-center justify-between"
                 style={{ color: "var(--text-secondary)" }}
               >
-                Invite by email
-              </p>
+                <span>Invite by Email</span>
+                <span className="text-[10px] text-emerald-400/80 font-normal">
+                  Real-time notification enabled
+                </span>
+              </label>
               <div className="flex gap-2">
                 <Input
                   id="share-dialog-invite-email"
                   type="email"
-                  placeholder="colleague@example.com"
+                  placeholder="colleague@company.com"
                   value={inviteEmail}
                   onChange={(e) => {
                     setInviteEmail(e.target.value);
                     setInviteError(null);
                   }}
                   disabled={inviting}
-                  className="flex-1 h-9 rounded-xl text-sm"
+                  className="flex-1 h-10 rounded-xl text-sm transition-all focus:ring-1 focus:ring-emerald-500/50"
                   style={{
-                    backgroundColor: "var(--bg-subtle)",
+                    backgroundColor: "rgba(255, 255, 255, 0.04)",
                     borderColor: inviteError
                       ? "var(--state-error)"
-                      : "var(--border-default)",
+                      : "rgba(255, 255, 255, 0.12)",
                     color: "var(--text-primary)",
                   }}
                   autoComplete="off"
@@ -218,147 +293,235 @@ export function ShareDialog({
                   type="submit"
                   size="sm"
                   disabled={inviting || !inviteEmail.trim()}
-                  className="h-9 px-3 rounded-xl gap-1.5 text-xs font-medium"
+                  className="h-10 px-4 rounded-xl gap-2 text-xs font-semibold shadow-lg transition-transform active:scale-95"
                   style={{
-                    backgroundColor: "var(--accent-primary)",
-                    color: "#000",
+                    backgroundColor: "#62C073",
+                    color: "#080809",
                   }}
                 >
                   {inviting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Plus className="h-3.5 w-3.5" />
+                    <Send className="h-3.5 w-3.5" />
                   )}
                   Invite
                 </Button>
               </div>
+
               {inviteError && (
-                <p className="text-xs" style={{ color: "var(--state-error)" }}>
-                  {inviteError}
-                </p>
+                <div
+                  className="rounded-lg px-3 py-2 text-xs flex items-center gap-2 border"
+                  style={{
+                    backgroundColor: "rgba(239, 68, 68, 0.1)",
+                    borderColor: "rgba(239, 68, 68, 0.2)",
+                    color: "#f87171",
+                  }}
+                >
+                  <X className="h-3.5 w-3.5 shrink-0" />
+                  <span>{inviteError}</span>
+                </div>
+              )}
+
+              {inviteSuccess && (
+                <div
+                  className="rounded-lg px-3 py-2 text-xs flex items-center gap-2 border"
+                  style={{
+                    backgroundColor: "rgba(98, 192, 115, 0.12)",
+                    borderColor: "rgba(98, 192, 115, 0.3)",
+                    color: "#62C073",
+                  }}
+                >
+                  <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                  <span>{inviteSuccess}</span>
+                </div>
               )}
             </form>
           )}
 
           {/* Collaborator list */}
-          <div className="flex flex-col gap-2">
-            <p
-              className="text-xs font-medium"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              {collaborators.length === 0 && !loading
-                ? "No collaborators yet"
-                : "Collaborators"}
-            </p>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs font-semibold tracking-wider uppercase"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Project Collaborators
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Refresh collaborator status"
+                  onClick={() => fetchCollaborators(true)}
+                  className="h-5 w-5 rounded-md text-zinc-500 hover:text-white hover:bg-white/10"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+              </div>
+              <span className="text-[10px] text-zinc-500 font-mono">
+                {collaborators.length} member{collaborators.length !== 1 ? "s" : ""}
+              </span>
+            </div>
 
             {loading ? (
-              <div className="flex items-center justify-center py-6">
+              <div className="flex items-center justify-center py-8">
                 <Loader2
-                  className="h-5 w-5 animate-spin"
-                  style={{ color: "var(--text-muted)" }}
+                  className="h-5 w-5 animate-spin text-emerald-400"
                 />
               </div>
             ) : (
-              <ul className="flex flex-col gap-1">
-                {collaborators.map((collab) => (
-                  <li
-                    key={collab.id}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 group"
-                    style={{ backgroundColor: "var(--bg-subtle)" }}
+              <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-0.5">
+                {collaborators.length === 0 ? (
+                  <div
+                    className="flex flex-col items-center justify-center py-6 px-4 rounded-xl border border-dashed text-center gap-1.5"
+                    style={{
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      backgroundColor: "rgba(255, 255, 255, 0.02)",
+                    }}
                   >
-                    <CollaboratorAvatar
-                      avatarUrl={collab.avatarUrl}
-                      displayName={collab.displayName}
-                      email={collab.email}
-                    />
-                    <div className="flex flex-col min-w-0 flex-1">
-                      {collab.displayName && (
-                        <span
-                          className="text-sm font-medium truncate leading-tight"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          {collab.displayName}
-                        </span>
-                      )}
-                      <span
-                        className="text-xs truncate leading-tight"
+                    <Mail className="h-5 w-5 text-zinc-500" />
+                    <p className="text-xs text-zinc-400">
+                      No collaborators added yet. Send an email invitation above!
+                    </p>
+                  </div>
+                ) : (
+                  collaborators.map((collab) => {
+                    const isAccepted = collab.status === "ACCEPTED";
+                    return (
+                      <div
+                        key={collab.id}
+                        className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors group border"
                         style={{
-                          color: collab.displayName
-                            ? "var(--text-muted)"
-                            : "var(--text-secondary)",
+                          backgroundColor: "rgba(255, 255, 255, 0.03)",
+                          borderColor: "rgba(255, 255, 255, 0.06)",
                         }}
                       >
-                        {collab.email}
-                      </span>
-                    </div>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <CollaboratorAvatar
+                            avatarUrl={collab.avatarUrl}
+                            displayName={collab.displayName}
+                            email={collab.email}
+                          />
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="text-sm font-medium truncate leading-tight"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                {collab.displayName || collab.email}
+                              </span>
+                            </div>
+                            {collab.displayName && (
+                              <span
+                                className="text-xs truncate leading-tight mt-0.5"
+                                style={{ color: "var(--text-muted)" }}
+                              >
+                                {collab.email}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                    {/* Remove button — owner only */}
-                    {isOwner && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Remove ${collab.email}`}
-                        disabled={removingId === collab.id}
-                        onClick={() => handleRemove(collab.id)}
-                        className="h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        style={{ color: "var(--state-error)" }}
-                      >
-                        {removingId === collab.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <X className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                        {/* Status Badge & Actions */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isAccepted ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Accepted
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                <Clock className="h-3 w-3 animate-pulse text-amber-400" />
+                                Pending
+                              </span>
+                              {isOwner && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  title="Resend email invitation"
+                                  disabled={resendingId === collab.id}
+                                  onClick={() => handleResend(collab.id, collab.email)}
+                                  className="h-7 px-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-white hover:bg-white/10"
+                                >
+                                  {resendingId === collab.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Remove button — owner only */}
+                          {isOwner && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Remove ${collab.email}`}
+                              disabled={removingId === collab.id}
+                              onClick={() => handleRemove(collab.id)}
+                              className="h-7 w-7 rounded-lg opacity-60 hover:opacity-100 hover:bg-red-500/20 text-red-400 transition-all shrink-0"
+                            >
+                              {removingId === collab.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <X className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
 
-          {/* Copy link */}
+          {/* Copy link section */}
           <div
-            className="flex items-center justify-between rounded-xl px-3 py-2.5"
+            className="flex items-center justify-between rounded-xl px-3.5 py-2.5 border"
             style={{
-              backgroundColor: "var(--bg-subtle)",
-              border: "1px solid var(--border-subtle)",
+              backgroundColor: "rgba(255, 255, 255, 0.03)",
+              borderColor: "rgba(255, 255, 255, 0.08)",
             }}
           >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <Link2
-                className="h-4 w-4 flex-shrink-0"
-                style={{ color: "var(--text-muted)" }}
+                className="h-4 w-4 shrink-0 text-emerald-400"
               />
-              <span
-                className="text-xs truncate"
-                style={{ color: "var(--text-muted)" }}
-              >
-                {typeof window !== "undefined"
-                  ? `${window.location.origin}/editor/${projectId}`
-                  : `/editor/${projectId}`}
-              </span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[10px] text-zinc-400 font-medium">Direct Workspace Link</span>
+                <span
+                  className="text-xs truncate font-mono text-zinc-300"
+                >
+                  {typeof window !== "undefined"
+                    ? `${window.location.origin}/editor/${projectId}`
+                    : `/editor/${projectId}`}
+                </span>
+              </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCopyLink}
               id="share-dialog-copy-link"
-              className="h-7 px-2.5 rounded-lg text-xs font-medium flex-shrink-0 gap-1.5 ml-2"
+              className="h-8 px-3 rounded-lg text-xs font-semibold shrink-0 gap-1.5 ml-2 border transition-all"
               style={{
-                color: copied ? "var(--state-success)" : "var(--text-secondary)",
-                backgroundColor: copied
-                  ? "rgba(52, 211, 153, 0.1)"
-                  : "transparent",
-                transition: "color 0.2s, background-color 0.2s",
+                color: copied ? "#62C073" : "var(--text-secondary)",
+                backgroundColor: copied ? "rgba(98, 192, 115, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                borderColor: copied ? "rgba(98, 192, 115, 0.3)" : "rgba(255, 255, 255, 0.1)",
               }}
             >
               {copied ? (
                 <>
-                  <Check className="h-3 w-3" />
+                  <Check className="h-3.5 w-3.5" />
                   Copied!
                 </>
               ) : (
-                "Copy"
+                "Copy Link"
               )}
             </Button>
           </div>

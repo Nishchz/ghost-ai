@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, useReactFlow, type NodeProps } from "@xyflow/react";
+import { X } from "lucide-react";
 import { NODE_COLORS, type CanvasNodeData, type NodeShape } from "@/types/canvas";
 import { useCanvasContext } from "./canvas-context";
 
@@ -540,6 +541,54 @@ function NodeColorToolbar({ nodeId, activeFill }: NodeColorToolbarProps) {
 }
 
 // ---------------------------------------------------------------------------
+// NodeDeleteButton — circular '×' icon button on top-right corner of selected shape
+// ---------------------------------------------------------------------------
+
+interface NodeDeleteButtonProps {
+  nodeId: string;
+}
+
+function NodeDeleteButton({ nodeId }: NodeDeleteButtonProps) {
+  const { deleteElements, getNode } = useReactFlow();
+
+  const handleDelete = useCallback(
+    (e: React.SyntheticEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const node = getNode(nodeId);
+      if (node) {
+        deleteElements({ nodes: [node] });
+      } else {
+        deleteElements({ nodes: [{ id: nodeId }] });
+      }
+    },
+    [nodeId, deleteElements, getNode]
+  );
+
+  const stopAll = useCallback((e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  return (
+    <button
+      type="button"
+      title="Delete shape"
+      onClick={handleDelete}
+      onMouseDown={stopAll}
+      onPointerDown={stopAll}
+      onTouchStart={stopAll}
+      onDoubleClick={stopAll}
+      className="absolute -top-2.5 -right-2.5 z-50 flex items-center justify-center w-5 h-5 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--state-error)] hover:border-[var(--state-error)] hover:text-white transition-all shadow-md cursor-pointer hover:scale-110"
+      style={{
+        pointerEvents: "all",
+      }}
+    >
+      <X className="w-3 h-3 stroke-[2.5]" />
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // CustomCanvasNode — the registered React Flow node component
 // ---------------------------------------------------------------------------
 
@@ -554,7 +603,7 @@ export function CustomCanvasNode({ id, data, selected, width, height }: NodeProp
   const h = typeof height === "number" ? height : 80;
 
   return (
-    <>
+    <div className="relative w-full h-full">
       {/* Resize handles — shown only when node is selected */}
       <NodeResizer
         isVisible={selected}
@@ -576,6 +625,8 @@ export function CustomCanvasNode({ id, data, selected, width, height }: NodeProp
       />
       {/* Color toolbar — only visible when node is selected */}
       {selected && <NodeColorToolbar nodeId={id} activeFill={fill} />}
+      {/* Delete button — only visible when node is selected */}
+      {selected && <NodeDeleteButton nodeId={id} />}
       <ShapeRenderer
         nodeId={id}
         shape={shape}
@@ -586,6 +637,6 @@ export function CustomCanvasNode({ id, data, selected, width, height }: NodeProp
         width={w}
         height={h}
       />
-    </>
+    </div>
   );
 }
