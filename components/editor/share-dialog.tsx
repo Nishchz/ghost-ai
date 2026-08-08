@@ -268,7 +268,7 @@ export function ShareDialog({
                   Real-time notification enabled
                 </span>
               </label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full min-w-0">
                 <Input
                   id="share-dialog-invite-email"
                   type="email"
@@ -279,7 +279,7 @@ export function ShareDialog({
                     setInviteError(null);
                   }}
                   disabled={inviting}
-                  className="flex-1 h-10 rounded-xl text-sm transition-all focus:ring-1 focus:ring-emerald-500/50"
+                  className="flex-1 min-w-0 h-10 rounded-xl text-sm transition-all focus:ring-1 focus:ring-emerald-500/50"
                   style={{
                     backgroundColor: "rgba(255, 255, 255, 0.04)",
                     borderColor: inviteError
@@ -293,7 +293,7 @@ export function ShareDialog({
                   type="submit"
                   size="sm"
                   disabled={inviting || !inviteEmail.trim()}
-                  className="h-10 px-4 rounded-xl gap-2 text-xs font-semibold shadow-lg transition-transform active:scale-95"
+                  className="h-10 px-4 rounded-xl gap-2 text-xs font-semibold shadow-lg transition-transform active:scale-95 shrink-0"
                   style={{
                     backgroundColor: "#62C073",
                     color: "#080809",
@@ -482,20 +482,21 @@ export function ShareDialog({
 
           {/* Copy link section */}
           <div
-            className="flex items-center justify-between rounded-xl px-3.5 py-2.5 border"
+            className="flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 border w-full min-w-0 overflow-hidden"
             style={{
               backgroundColor: "rgba(255, 255, 255, 0.03)",
               borderColor: "rgba(255, 255, 255, 0.08)",
             }}
           >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
               <Link2
                 className="h-4 w-4 shrink-0 text-emerald-400"
               />
-              <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
                 <span className="text-[10px] text-zinc-400 font-medium">Direct Workspace Link</span>
                 <span
-                  className="text-xs truncate font-mono text-zinc-300"
+                  className="text-xs truncate font-mono text-zinc-300 block w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                  title={typeof window !== "undefined" ? `${window.location.origin}/editor/${projectId}` : `/editor/${projectId}`}
                 >
                   {typeof window !== "undefined"
                     ? `${window.location.origin}/editor/${projectId}`
