@@ -218,17 +218,17 @@ export function ShareDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        className="sm:max-w-lg rounded-3xl p-0 gap-0 overflow-hidden shadow-2xl backdrop-blur-xl border border-white/10"
+        className="w-full max-w-[calc(100vw-2rem)] sm:max-w-lg rounded-3xl p-0 gap-0 overflow-hidden shadow-2xl backdrop-blur-xl border border-white/10"
         style={{
           backgroundColor: "rgba(17, 17, 20, 0.95)",
         }}
       >
         {/* Header */}
         <DialogHeader
-          className="px-6 pt-6 pb-4 flex flex-col gap-1.5"
+          className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 flex flex-col gap-1.5"
           style={{ borderBottom: "1px solid var(--border-default)" }}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pr-6">
             <div
               className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
               style={{
@@ -240,27 +240,27 @@ export function ShareDialog({
               <Users className="h-4 w-4" />
             </div>
             <DialogTitle
-              className="text-base font-semibold tracking-tight"
+              className="text-base font-semibold tracking-tight leading-snug"
               style={{ color: "var(--text-primary)" }}
             >
               Share Architecture Project
             </DialogTitle>
           </div>
           <DialogDescription
-            className="text-xs"
+            className="text-xs leading-relaxed"
             style={{ color: "var(--text-muted)" }}
           >
             Invite collaborators to build and edit system design graphs together in real time.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-5 px-6 py-5">
+        <div className="flex flex-col gap-4 sm:gap-5 px-4 sm:px-6 py-4 sm:py-5 min-w-0 overflow-hidden">
           {/* Invite form — owners only */}
           {isOwner && (
-            <form onSubmit={handleInvite} className="flex flex-col gap-2">
+            <form onSubmit={handleInvite} className="flex flex-col gap-2 w-full min-w-0">
               <label
                 htmlFor="share-dialog-invite-email"
-                className="text-xs font-medium flex items-center justify-between"
+                className="text-xs font-medium flex flex-wrap items-center justify-between gap-1"
                 style={{ color: "var(--text-secondary)" }}
               >
                 <span>Invite by Email</span>
@@ -268,7 +268,7 @@ export function ShareDialog({
                   Real-time notification enabled
                 </span>
               </label>
-              <div className="flex gap-2 w-full min-w-0">
+              <div className="flex flex-col sm:flex-row gap-2 w-full min-w-0">
                 <Input
                   id="share-dialog-invite-email"
                   type="email"
@@ -279,7 +279,7 @@ export function ShareDialog({
                     setInviteError(null);
                   }}
                   disabled={inviting}
-                  className="flex-1 min-w-0 h-10 rounded-xl text-sm transition-all focus:ring-1 focus:ring-emerald-500/50"
+                  className="w-full sm:flex-1 min-w-0 h-10 rounded-xl text-sm transition-all focus:ring-1 focus:ring-emerald-500/50"
                   style={{
                     backgroundColor: "rgba(255, 255, 255, 0.04)",
                     borderColor: inviteError
@@ -293,7 +293,7 @@ export function ShareDialog({
                   type="submit"
                   size="sm"
                   disabled={inviting || !inviteEmail.trim()}
-                  className="h-10 px-4 rounded-xl gap-2 text-xs font-semibold shadow-lg transition-transform active:scale-95 shrink-0"
+                  className="w-full sm:w-auto h-10 px-4 rounded-xl gap-2 text-xs font-semibold shadow-lg transition-transform active:scale-95 shrink-0 justify-center"
                   style={{
                     backgroundColor: "#62C073",
                     color: "#080809",
@@ -310,7 +310,7 @@ export function ShareDialog({
 
               {inviteError && (
                 <div
-                  className="rounded-lg px-3 py-2 text-xs flex items-center gap-2 border"
+                  className="rounded-lg px-3 py-2 text-xs flex items-center gap-2 border break-words"
                   style={{
                     backgroundColor: "rgba(239, 68, 68, 0.1)",
                     borderColor: "rgba(239, 68, 68, 0.2)",
@@ -318,13 +318,13 @@ export function ShareDialog({
                   }}
                 >
                   <X className="h-3.5 w-3.5 shrink-0" />
-                  <span>{inviteError}</span>
+                  <span className="break-words">{inviteError}</span>
                 </div>
               )}
 
               {inviteSuccess && (
                 <div
-                  className="rounded-lg px-3 py-2 text-xs flex items-center gap-2 border"
+                  className="rounded-lg px-3 py-2 text-xs flex items-center gap-2 border break-words"
                   style={{
                     backgroundColor: "rgba(98, 192, 115, 0.12)",
                     borderColor: "rgba(98, 192, 115, 0.3)",
@@ -332,18 +332,18 @@ export function ShareDialog({
                   }}
                 >
                   <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                  <span>{inviteSuccess}</span>
+                  <span className="break-words">{inviteSuccess}</span>
                 </div>
               )}
             </form>
           )}
 
           {/* Collaborator list */}
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2.5 w-full min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span
-                  className="text-xs font-semibold tracking-wider uppercase"
+                  className="text-xs font-semibold tracking-wider uppercase truncate"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Project Collaborators
@@ -353,12 +353,12 @@ export function ShareDialog({
                   size="icon"
                   title="Refresh collaborator status"
                   onClick={() => fetchCollaborators(true)}
-                  className="h-5 w-5 rounded-md text-zinc-500 hover:text-white hover:bg-white/10"
+                  className="h-5 w-5 rounded-md text-zinc-500 hover:text-white hover:bg-white/10 shrink-0"
                 >
                   <RefreshCw className="h-3 w-3" />
                 </Button>
               </div>
-              <span className="text-[10px] text-zinc-500 font-mono">
+              <span className="text-[10px] text-zinc-500 font-mono shrink-0">
                 {collaborators.length} member{collaborators.length !== 1 ? "s" : ""}
               </span>
             </div>
@@ -370,7 +370,7 @@ export function ShareDialog({
                 />
               </div>
             ) : (
-              <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-0.5">
+              <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-0.5 min-w-0">
                 {collaborators.length === 0 ? (
                   <div
                     className="flex flex-col items-center justify-center py-6 px-4 rounded-xl border border-dashed text-center gap-1.5"
@@ -390,31 +390,31 @@ export function ShareDialog({
                     return (
                       <div
                         key={collab.id}
-                        className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors group border"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 rounded-xl p-2.5 transition-colors group border w-full min-w-0"
                         style={{
                           backgroundColor: "rgba(255, 255, 255, 0.03)",
                           borderColor: "rgba(255, 255, 255, 0.06)",
                         }}
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
                           <CollaboratorAvatar
                             avatarUrl={collab.avatarUrl}
                             displayName={collab.displayName}
                             email={collab.email}
                           />
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="text-sm font-medium truncate leading-tight"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                {collab.displayName || collab.email}
-                              </span>
-                            </div>
+                          <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+                            <span
+                              className="text-xs sm:text-sm font-medium truncate leading-tight block w-full"
+                              style={{ color: "var(--text-primary)" }}
+                              title={collab.displayName || collab.email}
+                            >
+                              {collab.displayName || collab.email}
+                            </span>
                             {collab.displayName && (
                               <span
-                                className="text-xs truncate leading-tight mt-0.5"
+                                className="text-[11px] truncate leading-tight mt-0.5 block w-full"
                                 style={{ color: "var(--text-muted)" }}
+                                title={collab.email}
                               >
                                 {collab.email}
                               </span>
@@ -423,15 +423,15 @@ export function ShareDialog({
                         </div>
 
                         {/* Status Badge & Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-white/5">
                           {isAccepted ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
                               <CheckCircle2 className="h-3 w-3" />
                               Accepted
                             </span>
                           ) : (
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
                                 <Clock className="h-3 w-3 animate-pulse text-amber-400" />
                                 Pending
                               </span>
@@ -442,7 +442,7 @@ export function ShareDialog({
                                   title="Resend email invitation"
                                   disabled={resendingId === collab.id}
                                   onClick={() => handleResend(collab.id, collab.email)}
-                                  className="h-7 px-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-white hover:bg-white/10"
+                                  className="h-7 px-2 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-white hover:bg-white/10 shrink-0"
                                 >
                                   {resendingId === collab.id ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -462,7 +462,7 @@ export function ShareDialog({
                               aria-label={`Remove ${collab.email}`}
                               disabled={removingId === collab.id}
                               onClick={() => handleRemove(collab.id)}
-                              className="h-7 w-7 rounded-lg opacity-60 hover:opacity-100 hover:bg-red-500/20 text-red-400 transition-all shrink-0"
+                              className="h-7 w-7 rounded-lg opacity-80 hover:opacity-100 hover:bg-red-500/20 text-red-400 transition-all shrink-0 ml-auto sm:ml-0"
                             >
                               {removingId === collab.id ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -482,7 +482,7 @@ export function ShareDialog({
 
           {/* Copy link section */}
           <div
-            className="flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 border w-full min-w-0 overflow-hidden"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 rounded-xl p-3 sm:px-3.5 sm:py-2.5 border w-full min-w-0 overflow-hidden"
             style={{
               backgroundColor: "rgba(255, 255, 255, 0.03)",
               borderColor: "rgba(255, 255, 255, 0.08)",
@@ -509,7 +509,7 @@ export function ShareDialog({
               size="sm"
               onClick={handleCopyLink}
               id="share-dialog-copy-link"
-              className="h-8 px-3 rounded-lg text-xs font-semibold shrink-0 gap-1.5 ml-2 border transition-all"
+              className="w-full sm:w-auto h-8 px-3 rounded-lg text-xs font-semibold shrink-0 gap-1.5 border transition-all justify-center"
               style={{
                 color: copied ? "#62C073" : "var(--text-secondary)",
                 backgroundColor: copied ? "rgba(98, 192, 115, 0.15)" : "rgba(255, 255, 255, 0.05)",

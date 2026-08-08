@@ -72,19 +72,10 @@ function CanvasControlBar({
 }: CanvasControlBarProps) {
   return (
     <div
+      className="fixed sm:absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-20 left-3 sm:left-4 z-40 flex items-center gap-0 rounded-full p-1 shadow-2xl backdrop-blur-md select-none touch-none"
       style={{
-        position: "absolute",
-        bottom: "5rem", // sits above the shape panel (~4rem tall)
-        left: "1rem",
-        zIndex: 10,
-        display: "flex",
-        alignItems: "center",
-        gap: 0,
         backgroundColor: "var(--bg-elevated)",
         border: "1px solid var(--border-default)",
-        borderRadius: "9999px",
-        padding: "0.25rem",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
       }}
     >
       {/* Zoom group */}
@@ -92,28 +83,26 @@ function CanvasControlBar({
         label="Zoom out"
         onClick={onZoomOut}
         disabled={false}
-        icon={<ZoomOut size={15} />}
+        icon={<ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
       />
       <ControlButton
         label="Fit view"
         onClick={onFitView}
         disabled={false}
-        icon={<Maximize2 size={15} />}
+        icon={<Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
       />
       <ControlButton
         label="Zoom in"
         onClick={onZoomIn}
         disabled={false}
-        icon={<ZoomIn size={15} />}
+        icon={<ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
       />
 
       {/* Divider */}
       <div
+        className="w-[1px] h-4 sm:h-5 mx-1 my-auto"
         style={{
-          width: "1px",
-          height: "1.25rem",
           backgroundColor: "var(--border-default)",
-          margin: "0 0.25rem",
         }}
       />
 
@@ -122,13 +111,13 @@ function CanvasControlBar({
         label="Undo (Ctrl+Z)"
         onClick={onUndo}
         disabled={!canUndo}
-        icon={<Undo2 size={15} />}
+        icon={<Undo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
       />
       <ControlButton
         label="Redo (Ctrl+Shift+Z)"
         onClick={onRedo}
         disabled={!canRedo}
-        icon={<Redo2 size={15} />}
+        icon={<Redo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
       />
     </div>
   );
@@ -151,18 +140,9 @@ function ControlButton({
       title={label}
       onClick={onClick}
       disabled={disabled}
+      className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-none bg-transparent transition-colors disabled:cursor-not-allowed select-none"
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "2rem",
-        height: "2rem",
-        borderRadius: "9999px",
-        border: "none",
-        backgroundColor: "transparent",
         color: disabled ? "var(--text-faint)" : "var(--text-secondary)",
-        cursor: disabled ? "not-allowed" : "pointer",
-        transition: "color 0.15s ease, background-color 0.15s ease",
       }}
       onMouseEnter={(e) => {
         if (!disabled) {
@@ -217,13 +197,8 @@ function ParticipantAvatarGroup({ currentClerkUserId }: ParticipantAvatarGroupPr
 
   return (
     <div
+      className="fixed sm:absolute top-[calc(0.75rem+env(safe-area-inset-top,0px))] sm:top-4 right-3 sm:right-4 z-40 flex items-center"
       style={{
-        position: "absolute",
-        top: "1rem",
-        right: "1rem",
-        zIndex: 20,
-        display: "flex",
-        alignItems: "center",
         ...(hasCollaborators
           ? {
               backgroundColor: "var(--bg-elevated)",

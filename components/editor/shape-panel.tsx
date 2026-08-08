@@ -231,13 +231,13 @@ export function ShapePanel() {
       <DragGhostPortal ghost={ghost} />
 
       <div
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-2 rounded-full border shadow-2xl backdrop-blur-md"
+        className="fixed sm:absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-full border shadow-2xl backdrop-blur-md max-w-[calc(100vw-1.5rem)] overflow-x-auto select-none touch-none"
         style={{
           backgroundColor: "rgba(24, 24, 28, 0.85)",
           borderColor: "var(--border-default)",
         }}
       >
-        <div className="flex items-center gap-1.5 px-1.5 py-0.5 border-r border-[var(--border-default)]">
+        <div className="hidden sm:flex items-center gap-1.5 px-1.5 py-0.5 border-r border-[var(--border-default)]">
           <span
             className="text-[10px] uppercase tracking-wider font-semibold"
             style={{ color: "var(--text-muted)" }}
@@ -255,10 +255,10 @@ export function ShapePanel() {
                   draggable
                   onDragStart={(e) => handleDragStart(e, item.shape)}
                   onDragEnd={handleDragEnd}
-                  className="flex items-center justify-center h-9 w-9 rounded-full cursor-grab active:cursor-grabbing hover:bg-[var(--bg-subtle)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full cursor-grab active:cursor-grabbing hover:bg-[var(--bg-subtle)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   title={item.label}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
 
                 {/* Tooltip */}
