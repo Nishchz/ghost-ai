@@ -20,10 +20,10 @@ import {
   Redo2,
   Loader2,
 } from "lucide-react";
-import { CANVAS_NODE_TYPE, CANVAS_EDGE_TYPE, DEFAULT_NODE_COLOR } from "@/types/canvas";
+import { NodeShape, CANVAS_NODE_TYPE, CANVAS_EDGE_TYPE, DEFAULT_NODE_COLOR } from "@/types/canvas";
 import { CustomCanvasNode } from "./custom-node";
 import { CustomCanvasEdge } from "./custom-edge";
-import { ShapePanel } from "./shape-panel";
+import { ShapePanel, SHAPE_DEFAULT_SIZES } from "./shape-panel";
 import { CanvasContext } from "./canvas-context";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useCanvasAutosave, type SaveStatus } from "@/hooks/useCanvasAutosave";
@@ -45,121 +45,6 @@ let nodeCounter = 0;
 function generateNodeId(shape: string): string {
   nodeCounter++;
   return `${shape}-${Date.now()}-${nodeCounter}`;
-}
-
-// ---------------------------------------------------------------------------
-// CanvasControlBar
-// ---------------------------------------------------------------------------
-
-interface CanvasControlBarProps {
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onFitView: () => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-}
-
-function CanvasControlBar({
-  onZoomIn,
-  onZoomOut,
-  onFitView,
-  onUndo,
-  onRedo,
-  canUndo,
-  canRedo,
-}: CanvasControlBarProps) {
-  return (
-    <div
-      className="fixed sm:absolute bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:bottom-20 left-3 sm:left-4 z-40 flex items-center gap-0 rounded-full p-1 shadow-2xl backdrop-blur-md select-none touch-none"
-      style={{
-        backgroundColor: "var(--bg-elevated)",
-        border: "1px solid var(--border-default)",
-      }}
-    >
-      {/* Zoom group */}
-      <ControlButton
-        label="Zoom out"
-        onClick={onZoomOut}
-        disabled={false}
-        icon={<ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-      />
-      <ControlButton
-        label="Fit view"
-        onClick={onFitView}
-        disabled={false}
-        icon={<Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-      />
-      <ControlButton
-        label="Zoom in"
-        onClick={onZoomIn}
-        disabled={false}
-        icon={<ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-      />
-
-      {/* Divider */}
-      <div
-        className="w-[1px] h-4 sm:h-5 mx-1 my-auto"
-        style={{
-          backgroundColor: "var(--border-default)",
-        }}
-      />
-
-      {/* History group */}
-      <ControlButton
-        label="Undo (Ctrl+Z)"
-        onClick={onUndo}
-        disabled={!canUndo}
-        icon={<Undo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-      />
-      <ControlButton
-        label="Redo (Ctrl+Shift+Z)"
-        onClick={onRedo}
-        disabled={!canRedo}
-        icon={<Redo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
-      />
-    </div>
-  );
-}
-
-function ControlButton({
-  label,
-  onClick,
-  disabled,
-  icon,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled: boolean;
-  icon: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-none bg-transparent transition-colors disabled:cursor-not-allowed select-none"
-      style={{
-        color: disabled ? "var(--text-faint)" : "var(--text-secondary)",
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.backgroundColor = "var(--bg-subtle)";
-          e.currentTarget.style.color = "var(--text-primary)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled) {
-          e.currentTarget.style.backgroundColor = "transparent";
-          e.currentTarget.style.color = "var(--text-secondary)";
-        }
-      }}
-    >
-      {icon}
-    </button>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -589,9 +474,48 @@ export function CollaborativeCanvas({
     [screenToFlowPosition, addNodes]
   );
 
+  const handleAddNode = useCallback(
+    (shape: NodeShape) => {
+      const size = SHAPE_DEFAULT_SIZES[shape] || { width: 120, height: 80 };
+      const centerFlowPosition = screenToFlowPosition({
+        x: typeof window !== "undefined" ? window.innerWidth / 2 : 400,
+        y: typeof window !== "undefined" ? window.innerHeight / 2 : 300,
+      });
+
+      const newNode = {
+        id: generateNodeId(shape),
+        type: CANVAS_NODE_TYPE,
+        position: {
+          x: centerFlowPosition.x - size.width / 2,
+          y: centerFlowPosition.y - size.height / 2,
+        },
+        data: {
+          label: "",
+          color: DEFAULT_NODE_COLOR.fill,
+          textColor: DEFAULT_NODE_COLOR.text,
+          shape: shape,
+        },
+        style: {
+          width: size.width,
+          height: size.height,
+        },
+      };
+
+      addNodes([newNode]);
+    },
+    [screenToFlowPosition, addNodes]
+  );
+
   return (
     <div className="absolute inset-0">
-      <CanvasContext.Provider value={{ onNodesChange, onEdgesChange, onImportTemplate: handleImportTemplate }}>
+      <CanvasContext.Provider
+        value={{
+          onNodesChange,
+          onEdgesChange,
+          onImportTemplate: handleImportTemplate,
+          onAddNode: handleAddNode,
+        }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -628,8 +552,8 @@ export function CollaborativeCanvas({
         </ReactFlow>
       </CanvasContext.Provider>
 
-      {/* Floating control bar — zoom + history */}
-      <CanvasControlBar
+      {/* Integrated floating bottom toolbar — zoom + history + shapes */}
+      <ShapePanel
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onFitView={handleFitView}
@@ -638,8 +562,6 @@ export function CollaborativeCanvas({
         canUndo={canUndo}
         canRedo={canRedo}
       />
-
-      <ShapePanel />
 
       {/* Participant Avatar Group floating in the top-right corner */}
       <ParticipantAvatarGroup currentClerkUserId={currentClerkUserId} />

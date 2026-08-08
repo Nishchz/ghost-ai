@@ -8,9 +8,15 @@ import {
   Pill,
   Database,
   Hexagon,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Undo2,
+  Redo2,
   type LucideIcon,
 } from "lucide-react";
 import { type NodeShape } from "@/types/canvas";
+import { useCanvasContext } from "./canvas-context";
 
 // ---------------------------------------------------------------------------
 // Shape metadata
@@ -31,7 +37,7 @@ const SHAPES: ShapeItem[] = [
   { shape: "hexagon", label: "Hexagon", icon: Hexagon },
 ];
 
-const SHAPE_DEFAULT_SIZES: Record<NodeShape, { width: number; height: number }> = {
+export const SHAPE_DEFAULT_SIZES: Record<NodeShape, { width: number; height: number }> = {
   rectangle: { width: 150, height: 80 },
   diamond: { width: 110, height: 110 },
   circle: { width: 90, height: 90 },
@@ -173,12 +179,59 @@ function DragGhostPortal({ ghost }: { ghost: GhostState | null }) {
 }
 
 // ---------------------------------------------------------------------------
-// ShapePanel
+// ControlButton helper
 // ---------------------------------------------------------------------------
 
-export function ShapePanel() {
+function ControlButton({
+  label,
+  onClick,
+  disabled = false,
+  icon,
+}: {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-none bg-transparent transition-colors disabled:cursor-not-allowed select-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] disabled:text-[var(--text-faint)] disabled:hover:bg-transparent"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ShapePanel / CanvasBottomToolbar
+// ---------------------------------------------------------------------------
+
+export interface ShapePanelProps {
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onFitView?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+}
+
+export function ShapePanel({
+  onZoomIn,
+  onZoomOut,
+  onFitView,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+}: ShapePanelProps) {
   const [ghost, setGhost] = useState<GhostState | null>(null);
   const draggingShape = useRef<NodeShape | null>(null);
+  const { onAddNode } = useCanvasContext();
 
   // Track mouse position globally while dragging
   const onMouseMove = useCallback((e: MouseEvent) => {
@@ -231,52 +284,99 @@ export function ShapePanel() {
       <DragGhostPortal ghost={ghost} />
 
       <div
-        className="fixed sm:absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 rounded-full border shadow-2xl backdrop-blur-md max-w-[calc(100vw-1.5rem)] overflow-x-auto select-none touch-none"
+        className="fixed sm:absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom,16px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl sm:rounded-full border shadow-2xl backdrop-blur-md max-w-[calc(100vw-1.5rem)] select-none touch-none transition-all"
         style={{
-          backgroundColor: "rgba(24, 24, 28, 0.85)",
+          backgroundColor: "rgba(24, 24, 28, 0.88)",
           borderColor: "var(--border-default)",
         }}
       >
-        <div className="hidden sm:flex items-center gap-1.5 px-1.5 py-0.5 border-r border-[var(--border-default)]">
-          <span
-            className="text-[10px] uppercase tracking-wider font-semibold"
-            style={{ color: "var(--text-muted)" }}
-          >
-            Shapes
-          </span>
+        {/* Controls group — Zoom + History */}
+        <div className="flex items-center gap-0.5 sm:gap-1 px-1 py-0.5 sm:border-r sm:border-[var(--border-default)] sm:pr-2 shrink-0">
+          <ControlButton
+            label="Zoom out"
+            onClick={onZoomOut}
+            icon={<ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+          <ControlButton
+            label="Fit view"
+            onClick={onFitView}
+            icon={<Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+          <ControlButton
+            label="Zoom in"
+            onClick={onZoomIn}
+            icon={<ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+
+          <div
+            className="w-[1px] h-4 mx-1 sm:mx-1.5 my-auto"
+            style={{ backgroundColor: "var(--border-default)" }}
+          />
+
+          <ControlButton
+            label="Undo (Ctrl+Z)"
+            onClick={onUndo}
+            disabled={!canUndo}
+            icon={<Undo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+          <ControlButton
+            label="Redo (Ctrl+Shift+Z)"
+            onClick={onRedo}
+            disabled={!canRedo}
+            icon={<Redo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
         </div>
 
-        <div className="flex items-center gap-1">
-          {SHAPES.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div key={item.shape} className="group relative">
-                <div
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, item.shape)}
-                  onDragEnd={handleDragEnd}
-                  className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full cursor-grab active:cursor-grabbing hover:bg-[var(--bg-subtle)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  title={item.label}
-                >
-                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                </div>
+        {/* Divider line between control bar and shapes bar on mobile */}
+        <div
+          className="w-full h-[1px] sm:hidden opacity-60"
+          style={{ backgroundColor: "var(--border-default)" }}
+        />
 
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
+        {/* Shapes group */}
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full px-1 py-0.5 scrollbar-none">
+          <div className="hidden md:flex items-center gap-1.5 px-1.5 py-0.5 border-r border-[var(--border-default)] mr-1">
+            <span
+              className="text-[10px] uppercase tracking-wider font-semibold"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Shapes
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {SHAPES.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.shape} className="group relative shrink-0">
                   <div
-                    className="px-2 py-1 text-[10px] font-medium rounded border shadow-lg whitespace-nowrap"
-                    style={{
-                      backgroundColor: "var(--bg-subtle)",
-                      borderColor: "var(--border-subtle)",
-                      color: "var(--text-primary)",
-                    }}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, item.shape)}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => onAddNode?.(item.shape)}
+                    className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full cursor-grab active:cursor-grabbing hover:bg-[var(--bg-subtle)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    title={`${item.label} (Drag or tap to add)`}
                   >
-                    {item.label}
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </div>
+
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
+                    <div
+                      className="px-2 py-1 text-[10px] font-medium rounded border shadow-lg whitespace-nowrap"
+                      style={{
+                        backgroundColor: "var(--bg-subtle)",
+                        borderColor: "var(--border-subtle)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {item.label}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </>

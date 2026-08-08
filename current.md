@@ -1,11 +1,5 @@
-I have deployed my Next.js project to Vercel, but I am facing two major UI/responsiveness issues that need immediate fixing:
+I am facing a mobile responsiveness issue with the floating toolbar/controls at the bottom of the screen (containing zoom, undo, redo, and shape tools). 
 
-1. *Mobile Layout Issue (Canvas / Floating Toolbar):*
-   - On mobile screens, the floating toolbar/controls at the bottom (containing zoom/pan/undo/redo buttons and shapes) are pushed way too low or overlapping with the screen gestures/edges. 
-   - Please adjust the CSS/Tailwind classes (e.g., fixed positioning, bottom offsets, safe-area-inset) so it stays properly positioned and accessible on mobile viewports.
+On mobile viewports, this bottom toolbar is positioned way too low, overlapping with the mobile device's system navigation/gesture bar or getting cut off. 
 
-2. *Share Modal Layout Clipping:*
-   - In the "Share Architecture Project" modal, the elements on the right side (such as the "Invite" button and notification indicators) are getting clipped, hidden, or pushed out of bounds because of fixed container widths or lack of flex-wrap.
-   - Please fix the modal's internal layout (flexbox/grid) to ensure proper responsiveness, wrapping, and that all text/buttons fit cleanly inside the container without overflowing.
-
-Please inspect the relevant component files and provide the corrected code.
+Please inspect the bottom toolbar component/CSS and update it with proper fixed/sticky positioning, appropriate bottom spacing (e.g., using bottom-4 or safe-area-inset-bottom), and responsive padding so it stays neatly elevated and fully accessible on mobile screens.
