@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import type { SaveStatus } from "@/hooks/useCanvasAutosave";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { WorkspaceNavbar } from "@/components/editor/workspace-navbar";
 import { CreateProjectDialog } from "@/components/editor/create-project-dialog";
@@ -9,7 +9,11 @@ import { RenameProjectDialog } from "@/components/editor/rename-project-dialog";
 import { DeleteProjectDialog } from "@/components/editor/delete-project-dialog";
 import { useProjectActions, type Project } from "@/hooks/use-project-actions";
 import { CanvasWrapper } from "@/components/editor/canvas-wrapper";
+import type { CanvasTemplate } from "@/components/editor/starter-templates";
+import { AiSidebar } from "@/components/editor/ai-sidebar";
 
+
+import { useRouter } from "next/navigation";
 
 interface WorkspaceClientProps {
   initialProjects: Project[];
@@ -22,8 +26,91 @@ export function WorkspaceClient({
   activeProject,
   isOwner,
 }: WorkspaceClientProps) {
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
+  const [templateToImport, setTemplateToImport] = useState<CanvasTemplate | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [manualSaveRef, setManualSaveRef] = useState<{ current: (() => void) | null }>({ current: null });
+
+  // Sync state if server component passes new initialProjects
+  useEffect(() => {
+    setProjects(initialProjects);
+  }, [initialProjects]);
+
+  const refreshProjects = useCallback(async () => {
+    try {
+      const res = await fetch("/api/projects");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setProjects(data);
+        }
+      }
+    } catch (err) {
+      console.error("[WorkspaceClient] Failed to refresh projects:", err);
+    }
+  }, []);
+
+  // Fetch fresh projects whenever sidebar opens
+  useEffect(() => {
+    if (sidebarOpen) {
+      refreshProjects();
+    }
+  }, [sidebarOpen, refreshProjects]);
+
+  const handleSaveStatusChange = useCallback((status: SaveStatus) => {
+    setSaveStatus(status);
+  }, []);
+
+  const handleRegisterManualSave = useCallback((saveFn: () => void) => {
+    setManualSaveRef({ current: saveFn });
+  }, []);
+
+  const handleManualSave = manualSaveRef.current || undefined;
+
+  useEffect(() => {
+    if (!activeProject.id) return;
+
+    const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const acceptInvite = urlParams?.get("acceptInvite") === "true";
+
+    // Attempt auto-acceptance — route checks email match or explicit invitation flag
+    fetch(`/api/projects/${activeProject.id}/collaborators/accept`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ acceptInvite }),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error(
+            `[WorkspaceClient] accept route returned ${res.status}:`,
+            data
+          );
+        } else {
+          console.log("[WorkspaceClient] accept response:", data);
+          if (data.accepted) {
+            refreshProjects();
+            // Refresh server component state to reflect status change across the UI
+            router.refresh();
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("[WorkspaceClient] accept fetch failed:", err);
+      })
+      .finally(() => {
+        // Clean acceptInvite query parameter from address bar
+        if (acceptInvite && typeof window !== "undefined") {
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, "", newUrl);
+        }
+      });
+  }, [activeProject.id, router, refreshProjects]);
+
+
 
   const {
     dialog,
@@ -42,23 +129,13 @@ export function WorkspaceClient({
 
   return (
     <div
-      className="relative min-h-screen flex flex-col"
+      className="relative h-screen flex flex-col overflow-hidden"
       style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}
     >
-      <WorkspaceNavbar
-        projectId={activeProject.id}
-        projectName={activeProject.name}
-        isOwner={isOwner}
-        isSidebarOpen={sidebarOpen}
-        onSidebarToggle={() => setSidebarOpen((prev) => !prev)}
-        isAiSidebarOpen={aiSidebarOpen}
-        onAiSidebarToggle={() => setAiSidebarOpen((prev) => !prev)}
-      />
-
       <ProjectSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        projects={initialProjects}
+        projects={projects}
         activeProjectId={activeProject.id}
         onNewProject={openCreate}
         onRename={openRename}
@@ -66,79 +143,37 @@ export function WorkspaceClient({
       />
 
       {/* Main workspace — canvas + optional AI sidebar */}
-      <main className="flex-1 flex flex-row pt-12 relative overflow-hidden">
-        {/* Canvas area */}
-        <div className="flex-1 flex flex-col relative overflow-hidden">
-          <CanvasWrapper roomId={activeProject.id} />
-
-        </div>
-
-        {/* Right AI sidebar placeholder */}
-        <aside 
-          className="flex flex-col h-full backdrop-blur-md"
-          
-          style={{
-            width: aiSidebarOpen ? "320px" : "0px",
-            overflow: "hidden",
-            borderLeft: aiSidebarOpen
-              ? "1px solid var(--border-default)"
-              : "none",
-            backgroundColor: "rgba(17, 17, 20, 0.85)",
-            transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-            willChange: "width",
-          }}
+      <main className="flex-1 flex flex-row relative overflow-hidden">
+        <CanvasWrapper
+          roomId={activeProject.id}
+          projectId={activeProject.id}
+          templateToImport={templateToImport}
+          onImportConsumed={() => setTemplateToImport(null)}
+          onSaveStatusChange={handleSaveStatusChange}
+          onRegisterManualSave={handleRegisterManualSave}
+          navbar={
+            <WorkspaceNavbar
+              projectId={activeProject.id}
+              projectName={activeProject.name}
+              isOwner={isOwner}
+              isSidebarOpen={sidebarOpen}
+              onSidebarToggle={() => setSidebarOpen((prev) => !prev)}
+              isAiSidebarOpen={aiSidebarOpen}
+              onAiSidebarToggle={() => setAiSidebarOpen((prev) => !prev)}
+              onImportTemplate={setTemplateToImport}
+              saveStatus={saveStatus}
+              onManualSave={handleManualSave}
+            />
+          }
         >
-          <div className="flex flex-col h-full w-[320px] p-4 gap-4">
-            {/* Header */}
-            <div
-              className="flex items-center gap-2 pb-3"
-              style={{ borderBottom: "1px solid var(--border-default)" }}
-            >
-              <MessageSquare
-                className="h-4 w-4"
-                style={{ color: "var(--accent-ai-text)" }}
-              />
-              <span
-                className="text-sm font-semibold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                AI Architect
-              </span>
-            </div>
-
-            {/* Placeholder content */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-              <div
-                className="flex items-center justify-center w-12 h-12 rounded-2xl border"
-                style={{
-                  backgroundColor: "var(--bg-subtle)",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                <MessageSquare
-                  className="h-6 w-6"
-                  style={{ color: "var(--accent-ai-text)" }}
-                />
-              </div>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                AI chat and system design generation will appear here.
-              </p>
-            </div>
-
-            {/* Input placeholder */}
-            <div
-              className="rounded-xl border p-3"
-              style={{
-                backgroundColor: "var(--bg-subtle)",
-                borderColor: "var(--border-default)",
-              }}
-            >
-              <p className="text-xs" style={{ color: "var(--text-faint)" }}>
-                Chat input coming soon…
-              </p>
-            </div>
-          </div>
-        </aside>
+          {/* Right AI sidebar */}
+          <AiSidebar
+            isOpen={aiSidebarOpen}
+            onClose={() => setAiSidebarOpen(false)}
+            roomId={activeProject.id}
+            projectId={activeProject.id}
+          />
+        </CanvasWrapper>
       </main>
 
       {/* Dialogs */}

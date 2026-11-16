@@ -41,6 +41,7 @@ export default async function WorkspacePage({ params }: PageProps) {
       id: c.id,
       projectId: c.projectId,
       email: c.email,
+      status: c.status as "PENDING" | "ACCEPTED",
       createdAt: c.createdAt,
     })),
   };

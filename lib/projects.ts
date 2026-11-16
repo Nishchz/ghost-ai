@@ -4,6 +4,7 @@ export interface ProjectCollaborator {
   id: string;
   projectId: string;
   email: string;
+  status?: "PENDING" | "ACCEPTED";
   createdAt: Date;
 }
 
@@ -27,6 +28,14 @@ export async function getUserProjects(
   userId: string,
   emails: string[]
 ): Promise<ProjectWithCollaborators[]> {
+  const normalizedEmails = Array.from(
+    new Set(
+      emails
+        .flatMap((e) => [e, e.trim(), e.trim().toLowerCase()])
+        .filter(Boolean)
+    )
+  );
+
   const projects = await prisma.project.findMany({
     where: {
       OR: [
@@ -34,7 +43,7 @@ export async function getUserProjects(
         {
           collaborators: {
             some: {
-              email: { in: emails },
+              email: { in: normalizedEmails, mode: "insensitive" },
             },
           },
         },
@@ -61,6 +70,7 @@ export async function getUserProjects(
       id: c.id,
       projectId: c.projectId,
       email: c.email,
+      status: c.status as "PENDING" | "ACCEPTED",
       createdAt: c.createdAt,
     })),
   }));

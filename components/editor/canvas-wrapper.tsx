@@ -5,9 +5,17 @@ import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { CollaborativeCanvas } from "./canvas";
+import type { CanvasTemplate } from "./starter-templates";
+import type { SaveStatus } from "@/hooks/useCanvasAutosave";
 
 interface CanvasWrapperProps {
   roomId: string;
+  projectId: string;
+  templateToImport?: CanvasTemplate | null;
+  onImportConsumed?: () => void;
+  onSaveStatusChange?: (status: SaveStatus) => void;
+  onRegisterManualSave?: (saveFn: () => void) => void;
+  navbar?: React.ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -88,20 +96,43 @@ function CanvasError({ error }: FallbackProps) {
  * - ErrorBoundary catches Liveblocks connection errors
  * - ClientSideSuspense shows a loading state while the room connects
  */
-export function CanvasWrapper({ roomId }: CanvasWrapperProps) {
+export function CanvasWrapper({
+  roomId,
+  projectId,
+  templateToImport,
+  onImportConsumed,
+  onSaveStatusChange,
+  onRegisterManualSave,
+  navbar,
+  children,
+}: CanvasWrapperProps & { children?: React.ReactNode }) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider
         id={roomId}
-        initialPresence={{ cursor: null, isThinking: false }}
+        initialPresence={{ cursor: null, isThinking: false, thinking: false }}
       >
-        <ErrorBoundary FallbackComponent={CanvasError}>
-          <ClientSideSuspense fallback={<CanvasLoading />}>
-            <ReactFlowProvider>
-              <CollaborativeCanvas />
-            </ReactFlowProvider>
-          </ClientSideSuspense>
-        </ErrorBoundary>
+        <div className="flex-1 flex flex-col relative overflow-hidden h-full w-full">
+          {navbar}
+          <div className="flex-1 flex flex-row relative overflow-hidden h-full w-full pt-12">
+            <div className="flex-1 flex flex-col relative overflow-hidden">
+              <ErrorBoundary FallbackComponent={CanvasError}>
+                <ClientSideSuspense fallback={<CanvasLoading />}>
+                  <ReactFlowProvider>
+                    <CollaborativeCanvas
+                      projectId={projectId}
+                      templateToImport={templateToImport}
+                      onImportConsumed={onImportConsumed}
+                      onSaveStatusChange={onSaveStatusChange}
+                      onRegisterManualSave={onRegisterManualSave}
+                    />
+                  </ReactFlowProvider>
+                </ClientSideSuspense>
+              </ErrorBoundary>
+            </div>
+            {children}
+          </div>
+        </div>
       </RoomProvider>
     </LiveblocksProvider>
   );

@@ -43,26 +43,17 @@ export async function POST(request: Request) {
 
   const liveblocks = getLiveblocksClient();
 
-  // 5. Ensure the Liveblocks room exists (create only if needed).
-  //    Private by default; the authenticated user gets explicit write access.
-  await liveblocks.getOrCreateRoom(roomId, {
-    defaultAccesses: [],
-    usersAccesses: {
-      [identity.userId]: ["room:write"],
+  // Authorize session for authenticated project member (owner or collaborator)
+  const session = liveblocks.prepareSession(identity.userId, {
+    userInfo: {
+      name,
+      avatar,
+      color,
     },
   });
 
-  // 6. Return a session token with user metadata attached
-  const { status, body } = await liveblocks.identifyUser(
-    identity.userId,
-    {
-      userInfo: {
-        name,
-        avatar,
-        color,
-      },
-    }
-  );
+  session.allow(roomId, session.FULL_ACCESS);
 
+  const { status, body } = await session.authorize();
   return new Response(body, { status });
 }

@@ -32,6 +32,14 @@ export async function getProjectIfAccessible(
   userId: string,
   emails: string[]
 ) {
+  const normalizedEmails = Array.from(
+    new Set(
+      emails
+        .flatMap((e) => [e, e.trim(), e.trim().toLowerCase()])
+        .filter(Boolean)
+    )
+  );
+
   const project = await prisma.project.findFirst({
     where: {
       id: projectId,
@@ -40,7 +48,7 @@ export async function getProjectIfAccessible(
         {
           collaborators: {
             some: {
-              email: { in: emails },
+              email: { in: normalizedEmails, mode: "insensitive" },
             },
           },
         },

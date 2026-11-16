@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { sendProjectInviteEmail } from "@/lib/email";
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -18,13 +18,14 @@ interface EnrichedCollaborator {
   id: string;
   projectId: string;
   email: string;
+  status: "PENDING" | "ACCEPTED";
   createdAt: Date;
   displayName: string | null;
   avatarUrl: string | null;
 }
 
 async function enrichCollaborators(
-  collaborators: { id: string; projectId: string; email: string; createdAt: Date }[]
+  collaborators: { id: string; projectId: string; email: string; status: "PENDING" | "ACCEPTED"; createdAt: Date }[]
 ): Promise<EnrichedCollaborator[]> {
   if (collaborators.length === 0) return [];
 
@@ -188,11 +189,52 @@ export async function POST(
     }
 
     const collaborator = await prisma.projectCollaborator.create({
-      data: { projectId, email },
+      data: { projectId, email, status: "PENDING" },
     });
 
+    const inviterName =
+      ownerUser.fullName?.trim() ||
+      [ownerUser.firstName, ownerUser.lastName].filter(Boolean).join(" ").trim() ||
+      ownerUser.primaryEmailAddress?.emailAddress ||
+      ownerEmails[0] ||
+      "A collaborator";
+    const inviterEmail =
+      ownerUser.primaryEmailAddress?.emailAddress || ownerEmails[0] || "";
+
+    const origin =
+      request.headers.get("origin") ||
+      request.nextUrl.origin ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "http://localhost:3000";
+
+    const projectUrl = `${origin}/editor/${projectId}`;
+
+    // Send project invitation email notification (via Resend or dev simulation log)
+    const emailResult = await sendProjectInviteEmail({
+      recipientEmail: email,
+      inviterName,
+      inviterEmail,
+      projectName: project.name,
+      projectId,
+      projectUrl,
+    });
+
+    if (!emailResult.success) {
+      console.warn(
+        `[Collaborator Invite] Email notification failed for ${email}:`,
+        emailResult.error
+      );
+    }
+
     const [enriched] = await enrichCollaborators([collaborator]);
-    return NextResponse.json(enriched, { status: 201 });
+    return NextResponse.json(
+      {
+        ...enriched,
+        emailSent: emailResult.success,
+        emailSimulated: Boolean(emailResult.simulated),
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Failed to add collaborator:", error);
     return NextResponse.json(

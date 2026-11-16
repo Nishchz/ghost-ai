@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   Square,
   Diamond,
@@ -8,9 +8,19 @@ import {
   Pill,
   Database,
   Hexagon,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Undo2,
+  Redo2,
   type LucideIcon,
 } from "lucide-react";
 import { type NodeShape } from "@/types/canvas";
+import { useCanvasContext } from "./canvas-context";
+
+// ---------------------------------------------------------------------------
+// Shape metadata
+// ---------------------------------------------------------------------------
 
 interface ShapeItem {
   shape: NodeShape;
@@ -27,7 +37,7 @@ const SHAPES: ShapeItem[] = [
   { shape: "hexagon", label: "Hexagon", icon: Hexagon },
 ];
 
-const SHAPE_DEFAULT_SIZES: Record<NodeShape, { width: number; height: number }> = {
+export const SHAPE_DEFAULT_SIZES: Record<NodeShape, { width: number; height: number }> = {
   rectangle: { width: 150, height: 80 },
   diamond: { width: 110, height: 110 },
   circle: { width: 90, height: 90 },
@@ -36,7 +46,248 @@ const SHAPE_DEFAULT_SIZES: Record<NodeShape, { width: number; height: number }> 
   hexagon: { width: 130, height: 90 },
 };
 
-export function ShapePanel() {
+// ---------------------------------------------------------------------------
+// Drag ghost preview — inline SVG/CSS mini renderers
+// ---------------------------------------------------------------------------
+
+/** Renders a mini ghost preview of the dragged shape. */
+function ShapeGhost({ shape, width, height }: { shape: NodeShape; width: number; height: number }) {
+  const fill = "rgba(0, 200, 212, 0.15)";
+  const stroke = "var(--accent-primary)";
+  const sw = 1.5;
+
+  if (shape === "rectangle") {
+    return (
+      <div
+        style={{
+          width,
+          height,
+          backgroundColor: fill,
+          border: `${sw}px solid ${stroke}`,
+          borderRadius: 10,
+        }}
+      />
+    );
+  }
+
+  if (shape === "pill") {
+    return (
+      <div
+        style={{
+          width,
+          height,
+          backgroundColor: fill,
+          border: `${sw}px solid ${stroke}`,
+          borderRadius: 9999,
+        }}
+      />
+    );
+  }
+
+  if (shape === "circle") {
+    return (
+      <div
+        style={{
+          width,
+          height,
+          backgroundColor: fill,
+          border: `${sw}px solid ${stroke}`,
+          borderRadius: "50%",
+        }}
+      />
+    );
+  }
+
+  if (shape === "diamond") {
+    const cx = width / 2;
+    const cy = height / 2;
+    const pts = `${cx},${sw} ${width - sw},${cy} ${cx},${height - sw} ${sw},${cy}`;
+    return (
+      <svg width={width} height={height} style={{ overflow: "visible" }}>
+        <polygon points={pts} fill={fill} stroke={stroke} strokeWidth={sw} />
+      </svg>
+    );
+  }
+
+  if (shape === "hexagon") {
+    const cx = width / 2;
+    const cy = height / 2;
+    const rx = width / 2 - sw;
+    const ry = height / 2 - sw;
+    const pts = Array.from({ length: 6 }, (_, i) => {
+      const rad = (Math.PI / 180) * (60 * i - 30);
+      return `${(cx + rx * Math.cos(rad)).toFixed(2)},${(cy + ry * Math.sin(rad)).toFixed(2)}`;
+    }).join(" ");
+    return (
+      <svg width={width} height={height}>
+        <polygon points={pts} fill={fill} stroke={stroke} strokeWidth={sw} />
+      </svg>
+    );
+  }
+
+  if (shape === "cylinder") {
+    const ry = Math.max(8, height * 0.12);
+    const rx = width / 2 - sw;
+    const cx = width / 2;
+    const topY = ry + sw;
+    const bottomY = height - ry - sw;
+    return (
+      <svg width={width} height={height}>
+        <rect x={sw} y={topY} width={width - sw * 2} height={bottomY - topY} fill={fill} stroke="none" />
+        <line x1={sw} y1={topY} x2={sw} y2={bottomY} stroke={stroke} strokeWidth={sw} />
+        <line x1={width - sw} y1={topY} x2={width - sw} y2={bottomY} stroke={stroke} strokeWidth={sw} />
+        <ellipse cx={cx} cy={bottomY} rx={rx} ry={ry} fill={fill} stroke={stroke} strokeWidth={sw} />
+        <ellipse cx={cx} cy={topY} rx={rx} ry={ry} fill={fill} stroke={stroke} strokeWidth={sw} />
+      </svg>
+    );
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Ghost portal — absolutely positioned, follows mouse
+// ---------------------------------------------------------------------------
+
+interface GhostState {
+  shape: NodeShape;
+  x: number;
+  y: number;
+}
+
+function DragGhostPortal({ ghost }: { ghost: GhostState | null }) {
+  if (!ghost) return null;
+  const { shape, x, y } = ghost;
+  const { width, height } = SHAPE_DEFAULT_SIZES[shape];
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: x - width / 2,
+        top: y - height / 2,
+        width,
+        height,
+        pointerEvents: "none",
+        zIndex: 9999,
+        opacity: 0.85,
+      }}
+    >
+      <ShapeGhost shape={shape} width={width} height={height} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ControlButton helper
+// ---------------------------------------------------------------------------
+
+function ControlButton({
+  label,
+  onClick,
+  disabled = false,
+  icon,
+}: {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  icon: React.ReactNode;
+}) {
+  const lastTouchTimeRef = useRef(0);
+
+  const stopAllEvents = (e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (disabled) return;
+    lastTouchTimeRef.current = Date.now();
+    onClick?.();
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (disabled) return;
+    if (Date.now() - lastTouchTimeRef.current < 400) return;
+    onClick?.();
+  };
+
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={handleClick}
+      onTouchEnd={handleTouchEnd}
+      onPointerDown={stopAllEvents}
+      onTouchStart={stopAllEvents}
+      onMouseDown={stopAllEvents}
+      onPointerUp={stopAllEvents}
+      disabled={disabled}
+      className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full border-none bg-transparent transition-colors disabled:cursor-not-allowed select-none text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] disabled:text-[var(--text-faint)] disabled:hover:bg-transparent touch-manipulation pointer-events-auto cursor-pointer"
+    >
+      {icon}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ShapePanel / CanvasBottomToolbar
+// ---------------------------------------------------------------------------
+
+export interface ShapePanelProps {
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onFitView?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+}
+
+export function ShapePanel({
+  onZoomIn,
+  onZoomOut,
+  onFitView,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+}: ShapePanelProps) {
+  const [ghost, setGhost] = useState<GhostState | null>(null);
+  const draggingShape = useRef<NodeShape | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const lastShapeTouchTimeRef = useRef(0);
+  const { onAddNode } = useCanvasContext();
+
+  const stopAllEvents = useCallback((e: React.SyntheticEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  // Track mouse position globally while dragging on desktop
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    if (!draggingShape.current) return;
+    setGhost({ shape: draggingShape.current, x: e.clientX, y: e.clientY });
+  }, []);
+
+  const clearGhost = useCallback(() => {
+    draggingShape.current = null;
+    setGhost(null);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("dragend", clearGhost);
+    window.addEventListener("drop", clearGhost);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("dragend", clearGhost);
+      window.removeEventListener("drop", clearGhost);
+    };
+  }, [onMouseMove, clearGhost]);
+
   const handleDragStart = (event: React.DragEvent, shape: NodeShape) => {
     const payload = {
       shape,
@@ -44,53 +295,188 @@ export function ShapePanel() {
     };
     event.dataTransfer.setData("application/reactflow", JSON.stringify(payload));
     event.dataTransfer.effectAllowed = "move";
+
+    // Hide the browser's default drag image
+    const blank = document.createElement("div");
+    blank.style.cssText = "position:absolute;left:-9999px";
+    document.body.appendChild(blank);
+    event.dataTransfer.setDragImage(blank, 0, 0);
+    setTimeout(() => document.body.removeChild(blank), 0);
+
+    // Seed ghost position
+    draggingShape.current = shape;
+    setGhost({ shape, x: event.clientX, y: event.clientY });
+  };
+
+  const handleDragEnd = () => {
+    clearGhost();
+  };
+
+  // Mobile Touch Handlers
+  const handleTouchStartShape = (e: React.TouchEvent, shape: NodeShape) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    draggingShape.current = shape;
+  };
+
+  const handleTouchMoveShape = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (!draggingShape.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    setGhost({
+      shape: draggingShape.current,
+      x: touch.clientX,
+      y: touch.clientY,
+    });
+  };
+
+  const handleTouchEndShape = (e: React.TouchEvent, shape: NodeShape) => {
+    e.stopPropagation();
+    e.preventDefault();
+    lastShapeTouchTimeRef.current = Date.now();
+
+    const touch = e.changedTouches[0];
+    if (touch && touchStartPos.current) {
+      const dx = touch.clientX - touchStartPos.current.x;
+      const dy = touch.clientY - touchStartPos.current.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 15) {
+        // Dragged finger to canvas area
+        onAddNode?.(shape, { x: touch.clientX, y: touch.clientY });
+      } else {
+        // Simple tap on button
+        onAddNode?.(shape);
+      }
+    } else {
+      onAddNode?.(shape);
+    }
+
+    touchStartPos.current = null;
+    clearGhost();
+  };
+
+  const handleShapeClick = (e: React.MouseEvent, shape: NodeShape) => {
+    e.stopPropagation();
+    if (Date.now() - lastShapeTouchTimeRef.current < 400) return;
+    onAddNode?.(shape);
   };
 
   return (
-    <div
-      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 p-2 rounded-full border shadow-2xl backdrop-blur-md"
-      style={{
-        backgroundColor: "rgba(24, 24, 28, 0.85)",
-        borderColor: "var(--border-default)",
-      }}
-    >
-      <div className="flex items-center gap-1.5 px-1.5 py-0.5 border-r border-[var(--border-default)]">
-        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "var(--text-muted)" }}>
-          Shapes
-        </span>
-      </div>
+    <>
+      <DragGhostPortal ghost={ghost} />
 
-      <div className="flex items-center gap-1">
-        {SHAPES.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.shape} className="group relative">
-              <div
-                draggable
-                onDragStart={(e) => handleDragStart(e, item.shape)}
-                className="flex items-center justify-center h-9 w-9 rounded-full cursor-grab active:cursor-grabbing hover:bg-[var(--bg-subtle)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                title={item.label}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-              
-              {/* Premium CSS Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
-                <div
-                  className="px-2 py-1 text-[10px] font-medium rounded border shadow-lg whitespace-nowrap"
-                  style={{
-                    backgroundColor: "var(--bg-subtle)",
-                    borderColor: "var(--border-subtle)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  {item.label}
+      <div
+        className="fixed sm:absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom,16px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 rounded-2xl sm:rounded-full border shadow-2xl backdrop-blur-md max-w-[calc(100vw-1.5rem)] select-none pointer-events-auto touch-manipulation transition-all"
+        style={{
+          backgroundColor: "rgba(24, 24, 28, 0.88)",
+          borderColor: "var(--border-default)",
+        }}
+        onPointerDown={stopAllEvents}
+        onTouchStart={stopAllEvents}
+        onMouseDown={stopAllEvents}
+      >
+        {/* Controls group — Zoom + History */}
+        <div className="flex items-center gap-0.5 sm:gap-1 px-1 py-0.5 sm:border-r sm:border-[var(--border-default)] sm:pr-2 shrink-0">
+          <ControlButton
+            label="Zoom out"
+            onClick={onZoomOut}
+            icon={<ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+          <ControlButton
+            label="Fit view"
+            onClick={onFitView}
+            icon={<Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+          <ControlButton
+            label="Zoom in"
+            onClick={onZoomIn}
+            icon={<ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+
+          <div
+            className="w-[1px] h-4 mx-1 sm:mx-1.5 my-auto"
+            style={{ backgroundColor: "var(--border-default)" }}
+          />
+
+          <ControlButton
+            label="Undo (Ctrl+Z)"
+            onClick={onUndo}
+            disabled={!canUndo}
+            icon={<Undo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+          <ControlButton
+            label="Redo (Ctrl+Shift+Z)"
+            onClick={onRedo}
+            disabled={!canRedo}
+            icon={<Redo2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+          />
+        </div>
+
+        {/* Divider line between control bar and shapes bar on mobile */}
+        <div
+          className="w-full h-[1px] sm:hidden opacity-60"
+          style={{ backgroundColor: "var(--border-default)" }}
+        />
+
+        {/* Shapes group */}
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full px-1 py-0.5 scrollbar-none">
+          <div className="hidden md:flex items-center gap-1.5 px-1.5 py-0.5 border-r border-[var(--border-default)] mr-1">
+            <span
+              className="text-[10px] uppercase tracking-wider font-semibold"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Shapes
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {SHAPES.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.shape} className="group relative shrink-0">
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, item.shape)}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={(e) => handleTouchStartShape(e, item.shape)}
+                    onTouchMove={handleTouchMoveShape}
+                    onTouchEnd={(e) => handleTouchEndShape(e, item.shape)}
+                    onPointerDown={stopAllEvents}
+                    onMouseDown={stopAllEvents}
+                    onClick={(e) => handleShapeClick(e, item.shape)}
+                    className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full cursor-pointer hover:bg-[var(--bg-subtle)] active:scale-95 transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] touch-manipulation pointer-events-auto select-none"
+                    title={`${item.label} (Tap to add or drag)`}
+                    aria-label={`Add ${item.label} shape`}
+                  >
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 pointer-events-none">
+                    <div
+                      className="px-2 py-1 text-[10px] font-medium rounded border shadow-lg whitespace-nowrap"
+                      style={{
+                        backgroundColor: "var(--bg-subtle)",
+                        borderColor: "var(--border-subtle)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
+

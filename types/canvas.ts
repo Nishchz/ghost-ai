@@ -67,9 +67,11 @@ export interface CanvasNodeData extends Record<string, unknown> {
   shape: NodeShape;
 }
 
-/** Data payload carried inside every canvas edge (currently empty, reserved). */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface CanvasEdgeData extends Record<string, unknown> {}
+/** Data payload carried inside every canvas edge. */
+export interface CanvasEdgeData extends Record<string, unknown> {
+  /** Optional inline label shown as a pill badge at the edge midpoint. */
+  label?: string;
+}
 
 // ---------------------------------------------------------------------------
 // Custom type identifiers
