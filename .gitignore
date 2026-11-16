@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# trigger.dev
+.trigger/
+
 /app/generated/prisma
 
 .trigger
